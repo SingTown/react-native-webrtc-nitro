@@ -5,11 +5,11 @@ import type {
 } from 'react-native-nitro-modules'
 
 export interface WebrtcViewProps extends HybridViewProps {
-  isRed: boolean
+  videoPipeId?: string
+  audioPipeId?: string
 }
 
 export interface WebrtcViewMethods extends HybridViewMethods {}
-
 export type WebrtcView = HybridView<
   WebrtcViewProps,
   WebrtcViewMethods,

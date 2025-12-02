@@ -46,7 +46,13 @@ abstract class HybridWebrtcViewSpec: HybridView() {
   @get:Keep
   @set:DoNotStrip
   @set:Keep
-  abstract var isRed: Boolean
+  abstract var videoPipeId: String?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var audioPipeId: String?
 
   // Methods
   

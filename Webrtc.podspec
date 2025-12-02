@@ -21,8 +21,10 @@ Pod::Spec.new do |s|
     # Implementation (C++ objects)
     "cpp/*.{h,hpp,cpp}",
     "cpp/FFmpeg/*.{h,hpp,cpp}",
+    "cpp/Hybrid/*.{h,hpp,cpp}",
   ]
 
+  s.public_header_files = "ios/**/*.h"
   s.vendored_frameworks = "3rdparty/output/ios/*.xcframework"
   s.pod_target_xcconfig = {
     'HEADER_SEARCH_PATHS' => [

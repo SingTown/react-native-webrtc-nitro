@@ -29,9 +29,11 @@ Frame::Frame (AVSampleFormat format, int sampleRate, int channels,
     frame->sample_rate = sampleRate;
     frame->nb_samples = nb_samples;
     av_channel_layout_default (&frame->ch_layout, channels);
-
-    int ret = av_frame_get_buffer (frame.get (), FRAME_ALIGN);
-    checkError (ret, "av_frame_get_buffer");
+    if (frame->nb_samples > 0)
+    {
+        int ret = av_frame_get_buffer (frame.get (), FRAME_ALIGN);
+        checkError (ret, "av_frame_get_buffer");
+    }
 }
 
 Frame::Frame (AVPixelFormat format, int width, int height, int64_t pts)
@@ -49,7 +51,7 @@ Frame::Frame (AVPixelFormat format, int width, int height, int64_t pts)
     frame->width = width;
     frame->height = height;
 
-    int ret = av_frame_get_buffer (frame.get (), FRAME_ALIGN);
+    int ret = av_frame_get_buffer (frame.get (), 1);
     checkError (ret, "av_frame_get_buffer");
 }
 
@@ -131,7 +133,7 @@ void Frame::fillNoiseAudioS16P ()
     }
 }
 
-void Frame::fillNoiseVideo ()
+void Frame::fillNoiseVideoRGB ()
 {
     constexpr uint8_t MIN_NUMBER = 0;
     constexpr uint8_t MAX_NUMBER = 255;
@@ -144,10 +146,96 @@ void Frame::fillNoiseVideo ()
     {
         uint8_t *data = frame->data[plane];
         int linesize = frame->linesize[plane];
-        for (int pixel = 0; pixel < linesize; ++pixel)
+        for (int y = 0; y < frame->height; ++y)
         {
+            uint8_t *line = data + y * linesize;
+            for (int x = 0; x < linesize; ++x)
+            {
+                line[x] = dist (rng);
+            }
+        }
+    }
+}
 
-            data[pixel] = dist (rng);
+void Frame::fillNoiseVideoNV12 ()
+{
+    constexpr uint8_t MIN_NUMBER = 0;
+    constexpr uint8_t MAX_NUMBER = 255;
+    std::mt19937 rng (std::random_device{}());
+    static std::uniform_int_distribution<uint8_t> dist (MIN_NUMBER,
+                                                        MAX_NUMBER);
+    // Y plane
+    {
+        uint8_t *data = frame->data[0];
+        int linesize = frame->linesize[0];
+        for (int y = 0; y < frame->height; ++y)
+        {
+            uint8_t *line = data + y * linesize;
+            for (int x = 0; x < linesize; ++x)
+            {
+                line[x] = dist (rng);
+            }
+        }
+    }
+    // UV plane
+    {
+        uint8_t *data = frame->data[1];
+        int linesize = frame->linesize[1];
+        for (int y = 0; y < frame->height / 2; ++y)
+        {
+            uint8_t *line = data + y * linesize;
+            for (int x = 0; x < linesize; ++x)
+            {
+                line[x] = dist (rng);
+            }
+        }
+    }
+}
+
+void Frame::fillNoiseVideoYUV420P ()
+{
+    constexpr uint8_t MIN_NUMBER = 0;
+    constexpr uint8_t MAX_NUMBER = 255;
+    std::mt19937 rng (std::random_device{}());
+    static std::uniform_int_distribution<uint8_t> dist (MIN_NUMBER,
+                                                        MAX_NUMBER);
+    // Y plane
+    {
+        uint8_t *data = frame->data[0];
+        int linesize = frame->linesize[0];
+        for (int y = 0; y < frame->height; ++y)
+        {
+            uint8_t *line = data + y * linesize;
+            for (int x = 0; x < linesize; ++x)
+            {
+                line[x] = dist (rng);
+            }
+        }
+    }
+    // U plane
+    {
+        uint8_t *data = frame->data[1];
+        int linesize = frame->linesize[1];
+        for (int y = 0; y < frame->height / 2; ++y)
+        {
+            uint8_t *line = data + y * linesize;
+            for (int x = 0; x < linesize; ++x)
+            {
+                line[x] = dist (rng);
+            }
+        }
+    }
+    // V plane
+    {
+        uint8_t *data = frame->data[2];
+        int linesize = frame->linesize[2];
+        for (int y = 0; y < frame->height / 2; ++y)
+        {
+            uint8_t *line = data + y * linesize;
+            for (int x = 0; x < linesize; ++x)
+            {
+                line[x] = dist (rng);
+            }
         }
     }
 }
@@ -176,8 +264,26 @@ void Frame::fillNoise ()
     }
     else if (isVideo ())
     {
-        fillNoiseVideo ();
-        return;
+        switch (frame->format)
+        {
+        case AV_PIX_FMT_RGB24:
+        case AV_PIX_FMT_BGR24:
+        case AV_PIX_FMT_ARGB:
+        case AV_PIX_FMT_RGBA:
+        case AV_PIX_FMT_ABGR:
+        case AV_PIX_FMT_BGRA:
+            fillNoiseVideoRGB ();
+            return;
+        case AV_PIX_FMT_NV12:
+        case AV_PIX_FMT_NV21:
+            fillNoiseVideoNV12 ();
+            return;
+        case AV_PIX_FMT_YUV420P:
+            fillNoiseVideoYUV420P ();
+            return;
+        default:
+            break;
+        }
     }
     throw std::runtime_error ("Unsupported format in fillNoise");
 }

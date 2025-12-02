@@ -16,10 +16,11 @@
 #include <react/renderer/components/view/ConcreteViewShadowNode.h>
 #include <react/renderer/components/view/ViewProps.h>
 
+#include <string>
+#include <optional>
 #include <memory>
 #include "HybridWebrtcViewSpec.hpp"
 #include <functional>
-#include <optional>
 
 namespace margelo::nitro::webrtc::views {
 
@@ -42,7 +43,8 @@ namespace margelo::nitro::webrtc::views {
                           const react::RawProps& rawProps);
 
   public:
-    CachedProp<bool> isRed;
+    CachedProp<std::optional<std::string>> videoPipeId;
+    CachedProp<std::optional<std::string>> audioPipeId;
     CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridWebrtcViewSpec>& /* ref */)>>> hybridRef;
 
   private:

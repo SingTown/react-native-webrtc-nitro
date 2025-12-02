@@ -71,10 +71,15 @@ using namespace margelo::nitro::webrtc::views;
   // 2. Update each prop individually
   swiftPart.beforeUpdate();
 
-  // isRed: boolean
-  if (newViewProps.isRed.isDirty) {
-    swiftPart.setIsRed(newViewProps.isRed.value);
-    newViewProps.isRed.isDirty = false;
+  // videoPipeId: optional
+  if (newViewProps.videoPipeId.isDirty) {
+    swiftPart.setVideoPipeId(newViewProps.videoPipeId.value);
+    newViewProps.videoPipeId.isDirty = false;
+  }
+  // audioPipeId: optional
+  if (newViewProps.audioPipeId.isDirty) {
+    swiftPart.setAudioPipeId(newViewProps.audioPipeId.value);
+    newViewProps.audioPipeId.isDirty = false;
   }
 
   swiftPart.afterUpdate();

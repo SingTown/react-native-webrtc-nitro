@@ -14,8 +14,10 @@ namespace margelo::nitro::webrtc {
     HybridObject::loadHybridMethods();
     // load custom methods/properties
     registerHybrids(this, [](Prototype& prototype) {
-      prototype.registerHybridGetter("isRed", &HybridWebrtcViewSpec::getIsRed);
-      prototype.registerHybridSetter("isRed", &HybridWebrtcViewSpec::setIsRed);
+      prototype.registerHybridGetter("videoPipeId", &HybridWebrtcViewSpec::getVideoPipeId);
+      prototype.registerHybridSetter("videoPipeId", &HybridWebrtcViewSpec::setVideoPipeId);
+      prototype.registerHybridGetter("audioPipeId", &HybridWebrtcViewSpec::getAudioPipeId);
+      prototype.registerHybridSetter("audioPipeId", &HybridWebrtcViewSpec::setAudioPipeId);
     });
   }
 

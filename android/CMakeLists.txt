@@ -15,6 +15,7 @@ get_filename_component(FFMPEG_PATH ${TOP_PATH}/3rdparty/output/android/ffmpeg/${
 file(GLOB CPP_SOURCES
         ${TOP_PATH}/cpp/*.cpp
         ${TOP_PATH}/cpp/FFmpeg/*.cpp
+        ${TOP_PATH}/cpp/Hybrid/*.cpp
 )
 
 # Define C++ library and add all sources
@@ -31,6 +32,7 @@ include_directories(
         "src/main/cpp"
         "${TOP_PATH}/cpp"
         "${TOP_PATH}/cpp/FFmpeg"
+        "${TOP_PATH}/cpp/Hybrid"
         ${LIBDATACHANNEL_PATH}/include
         ${FFMPEG_PATH}/include
 )

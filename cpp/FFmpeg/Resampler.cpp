@@ -12,8 +12,7 @@ Resampler::~Resampler ()
 }
 
 auto Resampler::resample (const Frame &frame, AVSampleFormat outFormat,
-                          int outSampleRate, int outChannels)
-    -> std::optional<Frame>
+                          int outSampleRate, int outChannels) -> Frame
 {
     std::lock_guard lock (mutex);
     if (swr_ctx == nullptr)
@@ -39,10 +38,6 @@ auto Resampler::resample (const Frame &frame, AVSampleFormat outFormat,
     }
     int in_nb_samples = frame->nb_samples;
     int outSamples = swr_get_out_samples (swr_ctx, in_nb_samples);
-    if (outSamples == 0)
-    {
-        return std::nullopt;
-    }
     Frame dst (outFormat, outSampleRate, outChannels, outSamples, pts);
 
     int ret = swr_convert (swr_ctx, dst->data, dst->nb_samples, frame->data,
@@ -54,18 +49,14 @@ auto Resampler::resample (const Frame &frame, AVSampleFormat outFormat,
     return dst;
 }
 
-auto Resampler::flush () -> std::optional<Frame>
+auto Resampler::flush () -> Frame
 {
     std::lock_guard lock (mutex);
     if (swr_ctx == nullptr)
     {
-        return std::nullopt;
+        throw std::runtime_error ("Resampler not initialized");
     }
     int outSamples = swr_get_out_samples (swr_ctx, 0);
-    if (outSamples == 0)
-    {
-        return std::nullopt;
-    }
     Frame dst (outFormat, outSampleRate, outChannels, outSamples, pts);
 
     int ret = swr_convert (swr_ctx, dst->data, dst->nb_samples, nullptr, 0);

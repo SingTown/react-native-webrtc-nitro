@@ -15,7 +15,8 @@
 
 
 
-
+#include <string>
+#include <optional>
 
 namespace margelo::nitro::webrtc {
 
@@ -44,8 +45,10 @@ namespace margelo::nitro::webrtc {
 
     public:
       // Properties
-      virtual bool getIsRed() = 0;
-      virtual void setIsRed(bool isRed) = 0;
+      virtual std::optional<std::string> getVideoPipeId() = 0;
+      virtual void setVideoPipeId(const std::optional<std::string>& videoPipeId) = 0;
+      virtual std::optional<std::string> getAudioPipeId() = 0;
+      virtual void setAudioPipeId(const std::optional<std::string>& audioPipeId) = 0;
 
     public:
       // Methods

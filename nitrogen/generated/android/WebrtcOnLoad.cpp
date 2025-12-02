@@ -18,6 +18,9 @@
 #include "JHybridWebrtcViewSpec.hpp"
 #include "views/JHybridWebrtcViewStateUpdater.hpp"
 #include <NitroModules/DefaultConstructableObject.hpp>
+#include "HybridMediaDevices.hpp"
+#include "HybridMediaStream.hpp"
+#include "HybridMediaStreamTrack.hpp"
 
 namespace margelo::nitro::webrtc {
 
@@ -38,6 +41,33 @@ int initialize(JavaVM* vm) {
         static DefaultConstructableObject<JHybridWebrtcViewSpec::javaobject> object("com/webrtc/HybridWebrtcView");
         auto instance = object.create();
         return instance->cthis()->shared();
+      }
+    );
+    HybridObjectRegistry::registerHybridObjectConstructor(
+      "MediaDevices",
+      []() -> std::shared_ptr<HybridObject> {
+        static_assert(std::is_default_constructible_v<HybridMediaDevices>,
+                      "The HybridObject \"HybridMediaDevices\" is not default-constructible! "
+                      "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
+        return std::make_shared<HybridMediaDevices>();
+      }
+    );
+    HybridObjectRegistry::registerHybridObjectConstructor(
+      "MediaStream",
+      []() -> std::shared_ptr<HybridObject> {
+        static_assert(std::is_default_constructible_v<HybridMediaStream>,
+                      "The HybridObject \"HybridMediaStream\" is not default-constructible! "
+                      "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
+        return std::make_shared<HybridMediaStream>();
+      }
+    );
+    HybridObjectRegistry::registerHybridObjectConstructor(
+      "MediaStreamTrack",
+      []() -> std::shared_ptr<HybridObject> {
+        static_assert(std::is_default_constructible_v<HybridMediaStreamTrack>,
+                      "The HybridObject \"HybridMediaStreamTrack\" is not default-constructible! "
+                      "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
+        return std::make_shared<HybridMediaStreamTrack>();
       }
     );
   });

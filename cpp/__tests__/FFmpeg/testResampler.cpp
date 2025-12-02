@@ -1,5 +1,6 @@
 #include "FFmpeg.hpp"
 #include <gtest/gtest.h>
+#include <thread>
 
 using namespace FFmpeg;
 
@@ -12,17 +13,12 @@ auto resampleAndFlush (Frame &inputFrame, AVSampleFormat outFormat,
     Resampler resampler;
     AudioFifo fifo;
 
-    std::optional<Frame> frame1 = resampler.resample (
-        inputFrame, outFormat, outSampleRate, outChannels);
-    if (frame1.has_value ())
-    {
-        fifo.write (frame1.value ());
-    }
-    std::optional<Frame> frame2 = resampler.flush ();
-    if (frame2.has_value ())
-    {
-        fifo.write (frame2.value ());
-    }
+    Frame frame1 = resampler.resample (inputFrame, outFormat, outSampleRate,
+                                       outChannels);
+    fifo.write (frame1);
+
+    Frame frame2 = resampler.flush ();
+    fifo.write (frame2);
 
     auto outFrame = fifo.read (-1);
     if (!outFrame.has_value ())
@@ -138,4 +134,31 @@ TEST (ResamplerTest, testPts)
         = resampler.resample (in2, AV_SAMPLE_FMT_FLT, SAMPLE_RATE_OUT, 1);
     ASSERT_EQ (out1.value ()->pts, 1);
     ASSERT_EQ (out2.value ()->pts, out1.value ()->nb_samples + 1);
+}
+
+TEST (ResamplerTest, testEmpty)
+{
+    constexpr int SAMPLE_RATE = 48000;
+    Resampler resampler;
+    Frame inputFrame (AV_SAMPLE_FMT_FLT, SAMPLE_RATE, 1, 0, 1);
+    resampler.resample (inputFrame, AV_SAMPLE_FMT_FLT, SAMPLE_RATE, 1);
+    resampler.flush ();
+}
+
+TEST (ResamplerTest, testContinue)
+{
+    constexpr int AUDIO_SAMPLE_RATE = 48000;
+    constexpr int NB_SAMPLES = 48000;
+    constexpr int DELAY_MS = 1000;
+
+    Resampler resampler;
+    for (int i = 0; i < 10; ++i)
+    {
+
+        FFmpeg::Frame frame (AV_SAMPLE_FMT_FLT, AUDIO_SAMPLE_RATE, 2,
+                             NB_SAMPLES);
+        frame.fillNoise ();
+        resampler.resample (frame, AV_SAMPLE_FMT_S16, AUDIO_SAMPLE_RATE, 2);
+        std::this_thread::sleep_for (std::chrono::milliseconds (DELAY_MS));
+    }
 }

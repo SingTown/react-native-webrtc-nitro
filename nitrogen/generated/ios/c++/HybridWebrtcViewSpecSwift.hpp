@@ -14,7 +14,8 @@ namespace Webrtc { class HybridWebrtcViewSpec_cxx; }
 
 
 
-
+#include <string>
+#include <optional>
 
 #include "Webrtc-Swift-Cxx-Umbrella.hpp"
 
@@ -56,11 +57,19 @@ namespace margelo::nitro::webrtc {
 
   public:
     // Properties
-    inline bool getIsRed() noexcept override {
-      return _swiftPart.isRed();
+    inline std::optional<std::string> getVideoPipeId() noexcept override {
+      auto __result = _swiftPart.getVideoPipeId();
+      return __result;
     }
-    inline void setIsRed(bool isRed) noexcept override {
-      _swiftPart.setIsRed(std::forward<decltype(isRed)>(isRed));
+    inline void setVideoPipeId(const std::optional<std::string>& videoPipeId) noexcept override {
+      _swiftPart.setVideoPipeId(videoPipeId);
+    }
+    inline std::optional<std::string> getAudioPipeId() noexcept override {
+      auto __result = _swiftPart.getAudioPipeId();
+      return __result;
+    }
+    inline void setAudioPipeId(const std::optional<std::string>& audioPipeId) noexcept override {
+      _swiftPart.setAudioPipeId(audioPipeId);
     }
 
   public:

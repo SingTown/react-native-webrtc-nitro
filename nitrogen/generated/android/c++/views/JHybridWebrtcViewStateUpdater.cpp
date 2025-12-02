@@ -36,8 +36,12 @@ void JHybridWebrtcViewStateUpdater::updateViewProps(jni::alias_ref<jni::JClass> 
     throw std::runtime_error("HybridWebrtcViewState's data doesn't contain any props!");
   }
   const HybridWebrtcViewProps& props = maybeProps.value();
-  if (props.isRed.isDirty) {
-    view->setIsRed(props.isRed.value);
+  if (props.videoPipeId.isDirty) {
+    view->setVideoPipeId(props.videoPipeId.value);
+    // TODO: Set isDirty = false
+  }
+  if (props.audioPipeId.isDirty) {
+    view->setAudioPipeId(props.audioPipeId.value);
     // TODO: Set isDirty = false
   }
 

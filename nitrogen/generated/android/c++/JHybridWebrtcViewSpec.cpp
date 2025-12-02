@@ -9,7 +9,8 @@
 
 
 
-
+#include <string>
+#include <optional>
 
 namespace margelo::nitro::webrtc {
 
@@ -40,14 +41,23 @@ namespace margelo::nitro::webrtc {
   }
 
   // Properties
-  bool JHybridWebrtcViewSpec::getIsRed() {
-    static const auto method = javaClassStatic()->getMethod<jboolean()>("isRed");
+  std::optional<std::string> JHybridWebrtcViewSpec::getVideoPipeId() {
+    static const auto method = javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getVideoPipeId");
     auto __result = method(_javaPart);
-    return static_cast<bool>(__result);
+    return __result != nullptr ? std::make_optional(__result->toStdString()) : std::nullopt;
   }
-  void JHybridWebrtcViewSpec::setIsRed(bool isRed) {
-    static const auto method = javaClassStatic()->getMethod<void(jboolean /* isRed */)>("setRed");
-    method(_javaPart, isRed);
+  void JHybridWebrtcViewSpec::setVideoPipeId(const std::optional<std::string>& videoPipeId) {
+    static const auto method = javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* videoPipeId */)>("setVideoPipeId");
+    method(_javaPart, videoPipeId.has_value() ? jni::make_jstring(videoPipeId.value()) : nullptr);
+  }
+  std::optional<std::string> JHybridWebrtcViewSpec::getAudioPipeId() {
+    static const auto method = javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getAudioPipeId");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->toStdString()) : std::nullopt;
+  }
+  void JHybridWebrtcViewSpec::setAudioPipeId(const std::optional<std::string>& audioPipeId) {
+    static const auto method = javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* audioPipeId */)>("setAudioPipeId");
+    method(_javaPart, audioPipeId.has_value() ? jni::make_jstring(audioPipeId.value()) : nullptr);
   }
 
   // Methods

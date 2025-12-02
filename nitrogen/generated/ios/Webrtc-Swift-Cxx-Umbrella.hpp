@@ -14,6 +14,8 @@ namespace margelo::nitro::webrtc { class HybridWebrtcViewSpec; }
 // Include C++ defined types
 #include "HybridWebrtcViewSpec.hpp"
 #include <memory>
+#include <optional>
+#include <string>
 
 // C++ helpers for Swift
 #include "Webrtc-Swift-Cxx-Bridge.hpp"

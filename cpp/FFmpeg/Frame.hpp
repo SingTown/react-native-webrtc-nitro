@@ -13,7 +13,9 @@ namespace FFmpeg
         void fillNoiseAudioFLTP ();
         void fillNoiseAudioS16 ();
         void fillNoiseAudioS16P ();
-        void fillNoiseVideo ();
+        void fillNoiseVideoRGB ();
+        void fillNoiseVideoNV12 ();
+        void fillNoiseVideoYUV420P ();
 
       public:
         Frame ();

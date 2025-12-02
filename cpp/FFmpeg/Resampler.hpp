@@ -18,8 +18,7 @@ namespace FFmpeg
         ~Resampler ();
 
         auto resample (const Frame &frame, AVSampleFormat outFormat,
-                       int outSampleRate, int outChannels)
-            -> std::optional<Frame>;
-        auto flush () -> std::optional<Frame>;
+                       int outSampleRate, int outChannels) -> Frame;
+        auto flush () -> Frame;
     };
 } // namespace FFmpeg

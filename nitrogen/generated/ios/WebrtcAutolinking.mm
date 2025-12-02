@@ -11,6 +11,9 @@
 #import <type_traits>
 
 #include "HybridWebrtcViewSpecSwift.hpp"
+#include "HybridMediaDevices.hpp"
+#include "HybridMediaStream.hpp"
+#include "HybridMediaStreamTrack.hpp"
 
 @interface WebrtcAutolinking : NSObject
 @end
@@ -26,6 +29,33 @@
     []() -> std::shared_ptr<HybridObject> {
       std::shared_ptr<HybridWebrtcViewSpec> hybridObject = Webrtc::WebrtcAutolinking::createWebrtcView();
       return hybridObject;
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "MediaDevices",
+    []() -> std::shared_ptr<HybridObject> {
+      static_assert(std::is_default_constructible_v<HybridMediaDevices>,
+                    "The HybridObject \"HybridMediaDevices\" is not default-constructible! "
+                    "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
+      return std::make_shared<HybridMediaDevices>();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "MediaStream",
+    []() -> std::shared_ptr<HybridObject> {
+      static_assert(std::is_default_constructible_v<HybridMediaStream>,
+                    "The HybridObject \"HybridMediaStream\" is not default-constructible! "
+                    "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
+      return std::make_shared<HybridMediaStream>();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "MediaStreamTrack",
+    []() -> std::shared_ptr<HybridObject> {
+      static_assert(std::is_default_constructible_v<HybridMediaStreamTrack>,
+                    "The HybridObject \"HybridMediaStreamTrack\" is not default-constructible! "
+                    "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
+      return std::make_shared<HybridMediaStreamTrack>();
     }
   );
 }

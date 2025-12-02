@@ -11,7 +11,8 @@ import NitroModules
 /// See ``HybridWebrtcViewSpec``
 public protocol HybridWebrtcViewSpec_protocol: HybridObject, HybridView {
   // Properties
-  var isRed: Bool { get set }
+  var videoPipeId: String? { get set }
+  var audioPipeId: String? { get set }
 
   // Methods
   

@@ -50,8 +50,10 @@ namespace margelo::nitro::webrtc {
 
   public:
     // Properties
-    bool getIsRed() override;
-    void setIsRed(bool isRed) override;
+    std::optional<std::string> getVideoPipeId() override;
+    void setVideoPipeId(const std::optional<std::string>& videoPipeId) override;
+    std::optional<std::string> getAudioPipeId() override;
+    void setAudioPipeId(const std::optional<std::string>& audioPipeId) override;
 
   public:
     // Methods

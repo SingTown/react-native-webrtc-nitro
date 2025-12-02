@@ -4,7 +4,8 @@
   "bubblingEventTypes": {},
   "directEventTypes": {},
   "validAttributes": {
-    "isRed": true,
+    "videoPipeId": true,
+    "audioPipeId": true,
     "hybridRef": true
   }
 }

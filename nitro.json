@@ -16,6 +16,15 @@
     "WebrtcView": {
       "swift": "HybridWebrtcView",
       "kotlin": "HybridWebrtcView"
+    },
+    "MediaDevices": {
+      "cpp": "HybridMediaDevices"
+    },
+    "MediaStream": {
+      "cpp": "HybridMediaStream"
+    },
+    "MediaStreamTrack": {
+      "cpp": "HybridMediaStreamTrack"
     }
   },
   "ignorePaths": [

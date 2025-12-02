@@ -25,14 +25,24 @@ namespace margelo::nitro::webrtc::views {
                                                const HybridWebrtcViewProps& sourceProps,
                                                const react::RawProps& rawProps):
     react::ViewProps(context, sourceProps, rawProps, filterObjectKeys),
-    isRed([&]() -> CachedProp<bool> {
+    videoPipeId([&]() -> CachedProp<std::optional<std::string>> {
       try {
-        const react::RawValue* rawValue = rawProps.at("isRed", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.isRed;
+        const react::RawValue* rawValue = rawProps.at("videoPipeId", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.videoPipeId;
         const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.isRed);
+        return CachedProp<std::optional<std::string>>::fromRawValue(*runtime, value, sourceProps.videoPipeId);
       } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("WebrtcView.isRed: ") + exc.what());
+        throw std::runtime_error(std::string("WebrtcView.videoPipeId: ") + exc.what());
+      }
+    }()),
+    audioPipeId([&]() -> CachedProp<std::optional<std::string>> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("audioPipeId", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.audioPipeId;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<std::optional<std::string>>::fromRawValue(*runtime, value, sourceProps.audioPipeId);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("WebrtcView.audioPipeId: ") + exc.what());
       }
     }()),
     hybridRef([&]() -> CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridWebrtcViewSpec>& /* ref */)>>> {
@@ -48,12 +58,14 @@ namespace margelo::nitro::webrtc::views {
 
   HybridWebrtcViewProps::HybridWebrtcViewProps(const HybridWebrtcViewProps& other):
     react::ViewProps(),
-    isRed(other.isRed),
+    videoPipeId(other.videoPipeId),
+    audioPipeId(other.audioPipeId),
     hybridRef(other.hybridRef) { }
 
   bool HybridWebrtcViewProps::filterObjectKeys(const std::string& propName) {
     switch (hashString(propName)) {
-      case hashString("isRed"): return true;
+      case hashString("videoPipeId"): return true;
+      case hashString("audioPipeId"): return true;
       case hashString("hybridRef"): return true;
       default: return false;
     }
