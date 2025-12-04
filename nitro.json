@@ -25,6 +25,18 @@
     },
     "MediaStreamTrack": {
       "cpp": "HybridMediaStreamTrack"
+    },
+    "RTCPeerConnection": {
+      "cpp": "HybridRTCPeerConnection"
+    },
+    "RTCRtpReceiver": {
+      "cpp": "HybridRTCRtpReceiver"
+    },
+    "RTCRtpSender": {
+      "cpp": "HybridRTCRtpSender"
+    },
+    "RTCRtpTransceiver": {
+      "cpp": "HybridRTCRtpTransceiver"
     }
   },
   "ignorePaths": [

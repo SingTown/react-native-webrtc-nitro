@@ -14,6 +14,7 @@ namespace margelo::nitro::webrtc {
     HybridObject::loadHybridMethods();
     // load custom methods/properties
     registerHybrids(this, [](Prototype& prototype) {
+      prototype.registerHybridGetter("id", &HybridMediaStreamSpec::getId);
       prototype.registerHybridMethod("getTracks", &HybridMediaStreamSpec::getTracks);
       prototype.registerHybridMethod("addTrack", &HybridMediaStreamSpec::addTrack);
       prototype.registerHybridMethod("removeTrack", &HybridMediaStreamSpec::removeTrack);

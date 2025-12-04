@@ -2,6 +2,8 @@
 
 using namespace margelo::nitro::webrtc;
 
+std::string HybridMediaStream::getId () { return id; }
+
 std::vector<std::shared_ptr<HybridMediaStreamTrackSpec>>
 HybridMediaStream::getTracks ()
 {

@@ -130,12 +130,10 @@ void Encoder::send (const Frame &frame)
 
     if (encoder->id == AV_CODEC_ID_OPUS)
     {
-        std::optional<Frame> resampled_frame = resampler.resample (
-            frame, AV_SAMPLE_FMT_FLT, AAC_SAMPLE_RATE, 2);
-        if (resampled_frame.has_value ())
-        {
-            fifo.write (resampled_frame.value ());
-        }
+        Frame resampled_frame = resampler.resample (frame, AV_SAMPLE_FMT_FLT,
+                                                    AAC_SAMPLE_RATE, 2);
+        fifo.write (resampled_frame);
+
         while (std::optional<Frame> frame = fifo.read (OPUS_NB_SAMPLES))
         {
             frames.push_back (frame.value ());
@@ -143,12 +141,9 @@ void Encoder::send (const Frame &frame)
     }
     else if (encoder->id == AV_CODEC_ID_AAC)
     {
-        std::optional<Frame> resampled_frame = resampler.resample (
-            frame, AV_SAMPLE_FMT_FLTP, OPUS_SAMPLE_RATE, 2);
-        if (resampled_frame.has_value ())
-        {
-            fifo.write (resampled_frame.value ());
-        }
+        Frame resampled_frame = resampler.resample (frame, AV_SAMPLE_FMT_FLTP,
+                                                    OPUS_SAMPLE_RATE, 2);
+        fifo.write (resampled_frame);
         while (std::optional<Frame> frame = fifo.read (AAC_NB_SAMPLES))
         {
             frames.push_back (frame.value ());

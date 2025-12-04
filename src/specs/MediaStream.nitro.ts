@@ -3,6 +3,7 @@ import { getHybridObjectConstructor } from 'react-native-nitro-modules'
 import { MediaStreamTrack } from './MediaStreamTrack.nitro'
 
 interface MediaStream extends HybridObject<{ ios: 'c++'; android: 'c++' }> {
+  readonly id: string
   getTracks(): MediaStreamTrack[]
   addTrack(track: MediaStreamTrack): void
   removeTrack(track: MediaStreamTrack): void

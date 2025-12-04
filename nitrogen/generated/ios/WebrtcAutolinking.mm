@@ -14,6 +14,10 @@
 #include "HybridMediaDevices.hpp"
 #include "HybridMediaStream.hpp"
 #include "HybridMediaStreamTrack.hpp"
+#include "HybridRTCPeerConnection.hpp"
+#include "HybridRTCRtpReceiver.hpp"
+#include "HybridRTCRtpSender.hpp"
+#include "HybridRTCRtpTransceiver.hpp"
 
 @interface WebrtcAutolinking : NSObject
 @end
@@ -56,6 +60,42 @@
                     "The HybridObject \"HybridMediaStreamTrack\" is not default-constructible! "
                     "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
       return std::make_shared<HybridMediaStreamTrack>();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "RTCPeerConnection",
+    []() -> std::shared_ptr<HybridObject> {
+      static_assert(std::is_default_constructible_v<HybridRTCPeerConnection>,
+                    "The HybridObject \"HybridRTCPeerConnection\" is not default-constructible! "
+                    "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
+      return std::make_shared<HybridRTCPeerConnection>();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "RTCRtpReceiver",
+    []() -> std::shared_ptr<HybridObject> {
+      static_assert(std::is_default_constructible_v<HybridRTCRtpReceiver>,
+                    "The HybridObject \"HybridRTCRtpReceiver\" is not default-constructible! "
+                    "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
+      return std::make_shared<HybridRTCRtpReceiver>();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "RTCRtpSender",
+    []() -> std::shared_ptr<HybridObject> {
+      static_assert(std::is_default_constructible_v<HybridRTCRtpSender>,
+                    "The HybridObject \"HybridRTCRtpSender\" is not default-constructible! "
+                    "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
+      return std::make_shared<HybridRTCRtpSender>();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "RTCRtpTransceiver",
+    []() -> std::shared_ptr<HybridObject> {
+      static_assert(std::is_default_constructible_v<HybridRTCRtpTransceiver>,
+                    "The HybridObject \"HybridRTCRtpTransceiver\" is not default-constructible! "
+                    "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
+      return std::make_shared<HybridRTCRtpTransceiver>();
     }
   );
 }

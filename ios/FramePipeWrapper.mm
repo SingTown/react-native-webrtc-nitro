@@ -1,5 +1,5 @@
 #import "FramePipeWrapper.h"
-#include "framepipe.hpp"
+#include "FramePipe.hpp"
 #include <string>
 
 @implementation FramePipeWrapper

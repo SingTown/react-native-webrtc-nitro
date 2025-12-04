@@ -4,14 +4,15 @@
 
 namespace margelo::nitro::webrtc
 {
-
     class HybridMediaStream : public HybridMediaStreamSpec
     {
       public:
+        std::string id = uuidv4 ();
         std::vector<std::shared_ptr<HybridMediaStreamTrack>> tracks;
 
         HybridMediaStream () : HybridObject (TAG), HybridMediaStreamSpec () {}
 
+        std::string getId () override;
         std::vector<std::shared_ptr<HybridMediaStreamTrackSpec>>
         getTracks () override;
         void addTrack (
