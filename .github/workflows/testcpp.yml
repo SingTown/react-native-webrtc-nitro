@@ -58,6 +58,6 @@ jobs:
         run: cat cpp/__tests__/build/report.xml
 
       - name: Publish Test Results
-        uses: mikepenz/action-junit-report@v4
+        uses: mikepenz/action-junit-report@v6
         with:
           report_paths: 'cpp/__tests__/build/report.xml'
