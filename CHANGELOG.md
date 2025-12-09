@@ -1,3 +1,9 @@
+## [1.1.0](https://github.com/SingTown/react-native-webrtc-nitro/compare/v1.0.0...v1.1.0) (2025-12-09)
+
+### ✨ Features
+
+* add MediaRecorder ([e4ce7c6](https://github.com/SingTown/react-native-webrtc-nitro/commit/e4ce7c6d5d2177943b25af2843ffbbe5d68c3400))
+
 ## 1.0.0 (2025-12-09)
 
 ### ✨ Features
