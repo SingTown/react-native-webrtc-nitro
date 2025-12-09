@@ -85,7 +85,7 @@ void Muxer::tryWriteVideo ()
     {
         return;
     }
-    std::vector<Packet> packets = audioEncoder.receive ();
+    std::vector<Packet> packets = videoEncoder.receive ();
     for (Packet &packet : packets)
     {
         packet->stream_index = videoStream->index;

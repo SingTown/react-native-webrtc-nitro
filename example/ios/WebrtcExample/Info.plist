@@ -39,6 +39,10 @@
 	<string>Webrtc Capture Video</string>
 	<key>NSMicrophoneUsageDescription</key>
     <string>Webrtc Capture Audio</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+    <string>Webrtc Photo Usage</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Webrtc Photo Add</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

@@ -23,6 +23,7 @@
 #include "HybridMediaStreamTrack.hpp"
 #include "HybridMediaStream.hpp"
 #include "HybridMediaDevices.hpp"
+#include "HybridMediaRecorder.hpp"
 #include "HybridRTCRtpSender.hpp"
 #include "HybridRTCRtpReceiver.hpp"
 #include "HybridRTCRtpTransceiver.hpp"
@@ -92,6 +93,15 @@ int initialize(JavaVM* vm) {
                       "The HybridObject \"HybridMediaDevices\" is not default-constructible! "
                       "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
         return std::make_shared<HybridMediaDevices>();
+      }
+    );
+    HybridObjectRegistry::registerHybridObjectConstructor(
+      "MediaRecorder",
+      []() -> std::shared_ptr<HybridObject> {
+        static_assert(std::is_default_constructible_v<HybridMediaRecorder>,
+                      "The HybridObject \"HybridMediaRecorder\" is not default-constructible! "
+                      "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
+        return std::make_shared<HybridMediaRecorder>();
       }
     );
     HybridObjectRegistry::registerHybridObjectConstructor(

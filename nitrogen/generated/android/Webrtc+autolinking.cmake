@@ -35,6 +35,7 @@ target_sources(
   # Shared Nitrogen C++ sources
   ../nitrogen/generated/shared/c++/HybridCameraSpec.cpp
   ../nitrogen/generated/shared/c++/HybridMediaDevicesSpec.cpp
+  ../nitrogen/generated/shared/c++/HybridMediaRecorderSpec.cpp
   ../nitrogen/generated/shared/c++/HybridMediaStreamSpec.cpp
   ../nitrogen/generated/shared/c++/HybridMediaStreamTrackSpec.cpp
   ../nitrogen/generated/shared/c++/HybridMicrophoneSpec.cpp
