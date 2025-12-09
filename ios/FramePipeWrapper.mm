@@ -98,10 +98,6 @@
         return;
     }
 
-    NSLog (@"[Microphone] Audio format: %dHz, %d channels, %d-bit, %s",
-           sampleRate, channels, bitsPerChannel,
-           isInterleaved ? "interleaved" : "non-interleaved");
-
     FFmpeg::Frame frame (sampleFormat, sampleRate, channels, (int)numSamples);
 
     AudioBufferList audioBufferList;

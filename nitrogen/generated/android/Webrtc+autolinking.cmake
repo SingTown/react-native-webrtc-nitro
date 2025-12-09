@@ -33,9 +33,11 @@ target_sources(
   # Autolinking Setup
   ../nitrogen/generated/android/WebrtcOnLoad.cpp
   # Shared Nitrogen C++ sources
+  ../nitrogen/generated/shared/c++/HybridCameraSpec.cpp
   ../nitrogen/generated/shared/c++/HybridMediaDevicesSpec.cpp
   ../nitrogen/generated/shared/c++/HybridMediaStreamSpec.cpp
   ../nitrogen/generated/shared/c++/HybridMediaStreamTrackSpec.cpp
+  ../nitrogen/generated/shared/c++/HybridMicrophoneSpec.cpp
   ../nitrogen/generated/shared/c++/HybridRTCPeerConnectionSpec.cpp
   ../nitrogen/generated/shared/c++/HybridRTCRtpReceiverSpec.cpp
   ../nitrogen/generated/shared/c++/HybridRTCRtpSenderSpec.cpp
@@ -43,6 +45,8 @@ target_sources(
   ../nitrogen/generated/shared/c++/HybridWebrtcViewSpec.cpp
   ../nitrogen/generated/shared/c++/views/HybridWebrtcViewComponent.cpp
   # Android-specific Nitrogen C++ sources
+  ../nitrogen/generated/android/c++/JHybridCameraSpec.cpp
+  ../nitrogen/generated/android/c++/JHybridMicrophoneSpec.cpp
   ../nitrogen/generated/android/c++/JHybridWebrtcViewSpec.cpp
   ../nitrogen/generated/android/c++/views/JHybridWebrtcViewStateUpdater.cpp
 )

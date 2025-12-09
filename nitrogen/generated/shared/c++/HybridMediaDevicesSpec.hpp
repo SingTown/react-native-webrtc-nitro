@@ -55,6 +55,7 @@ namespace margelo::nitro::webrtc {
     public:
       // Methods
       virtual std::shared_ptr<Promise<std::shared_ptr<HybridMediaStreamSpec>>> getMockMedia(const MediaStreamConstraints& constraints) = 0;
+      virtual std::shared_ptr<Promise<std::shared_ptr<HybridMediaStreamSpec>>> getUserMedia(const MediaStreamConstraints& constraints) = 0;
 
     protected:
       // Hybrid Setup

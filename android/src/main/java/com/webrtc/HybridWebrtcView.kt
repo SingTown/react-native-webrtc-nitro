@@ -32,7 +32,7 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
     external fun unsubscribe(subscriptionId: Int)
     external fun subscribeAudio(pipeId: String, track: AudioTrack): Int
     external fun subscribeVideo(pipeId: String, surface: Surface): Int
-    
+
     private var _audioPipeId: String? = null
     private var _videoPipeId: String? = null
     private var videoSubscriptionId: Int = -1

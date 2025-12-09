@@ -8,11 +8,20 @@
 #pragma once
 
 // Forward declarations of C++ defined types
+// Forward declaration of `HybridCameraSpec` to properly resolve imports.
+namespace margelo::nitro::webrtc { class HybridCameraSpec; }
+// Forward declaration of `HybridMicrophoneSpec` to properly resolve imports.
+namespace margelo::nitro::webrtc { class HybridMicrophoneSpec; }
 // Forward declaration of `HybridWebrtcViewSpec` to properly resolve imports.
 namespace margelo::nitro::webrtc { class HybridWebrtcViewSpec; }
 
 // Include C++ defined types
+#include "HybridCameraSpec.hpp"
+#include "HybridMicrophoneSpec.hpp"
 #include "HybridWebrtcViewSpec.hpp"
+#include <NitroModules/Promise.hpp>
+#include <NitroModules/Result.hpp>
+#include <exception>
 #include <memory>
 #include <optional>
 #include <string>
@@ -27,6 +36,10 @@ namespace margelo::nitro::webrtc { class HybridWebrtcViewSpec; }
 #include <NitroModules/DateToChronoDate.hpp>
 
 // Forward declarations of Swift defined types
+// Forward declaration of `HybridCameraSpec_cxx` to properly resolve imports.
+namespace Webrtc { class HybridCameraSpec_cxx; }
+// Forward declaration of `HybridMicrophoneSpec_cxx` to properly resolve imports.
+namespace Webrtc { class HybridMicrophoneSpec_cxx; }
 // Forward declaration of `HybridWebrtcViewSpec_cxx` to properly resolve imports.
 namespace Webrtc { class HybridWebrtcViewSpec_cxx; }
 

@@ -10,20 +10,22 @@ import com.margelo.nitro.webrtc.views.*;
 
 
 public class WebrtcPackage : TurboReactPackage() {
-  override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? = null
+    override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? =
+        null
 
-  override fun getReactModuleInfoProvider(): ReactModuleInfoProvider = ReactModuleInfoProvider { emptyMap() }
-  
-  override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
-    val viewManagers = ArrayList<ViewManager<*, *>>()
-    viewManagers.add(HybridWebrtcViewManager())
-    return viewManagers
-  }
+    override fun getReactModuleInfoProvider(): ReactModuleInfoProvider =
+        ReactModuleInfoProvider { emptyMap() }
 
-  companion object {
-    init {
-      WebrtcOnLoad.initializeNative()
+    override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
+        val viewManagers = ArrayList<ViewManager<*, *>>()
+        viewManagers.add(HybridWebrtcViewManager())
+        return viewManagers
     }
-  }
+
+    companion object {
+        init {
+            WebrtcOnLoad.initializeNative()
+        }
+    }
 }
 

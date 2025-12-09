@@ -13,6 +13,14 @@
     "androidCxxLibName": "Webrtc"
   },
   "autolinking": {
+    "Microphone": {
+      "swift": "HybridMicrophone",
+      "kotlin": "HybridMicrophone"
+    },
+    "Camera": {
+      "swift": "HybridCamera",
+      "kotlin": "HybridCamera"
+    },
     "MediaStreamTrack": {
       "cpp": "HybridMediaStreamTrack"
     },

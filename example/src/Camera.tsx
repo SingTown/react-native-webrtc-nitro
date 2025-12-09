@@ -14,7 +14,8 @@ export default function Camera() {
     let localStream: MediaStream | null = null;
     (async () => {
       try {
-        localStream = await MediaDevices.getMockMedia({
+        localStream = await MediaDevices.getUserMedia({
+          // localStream = await MediaDevices.getMockMedia({
           video: true,
           audio: true,
         });

@@ -15,5 +15,9 @@ namespace margelo::nitro::webrtc
         auto getMockMedia (const MediaStreamConstraints &constraints)
             -> std::shared_ptr<
                 Promise<std::shared_ptr<HybridMediaStreamSpec>>> override;
+
+        auto getUserMedia (const MediaStreamConstraints &constraints)
+            -> std::shared_ptr<
+                Promise<std::shared_ptr<HybridMediaStreamSpec>>> override;
     };
 } // namespace margelo::nitro::webrtc

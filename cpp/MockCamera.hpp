@@ -27,7 +27,7 @@ class MockCamera
             });
     }
 
-    void stop ()
+    void dispose ()
     {
         running.store (false);
         if (mockThread.joinable ())
@@ -36,5 +36,5 @@ class MockCamera
         }
     }
 
-    ~MockCamera () { stop (); }
+    ~MockCamera () { dispose (); }
 };

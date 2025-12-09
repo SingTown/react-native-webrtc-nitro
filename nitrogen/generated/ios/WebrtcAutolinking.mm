@@ -10,6 +10,8 @@
 #import "Webrtc-Swift-Cxx-Umbrella.hpp"
 #import <type_traits>
 
+#include "HybridMicrophoneSpecSwift.hpp"
+#include "HybridCameraSpecSwift.hpp"
 #include "HybridMediaStreamTrack.hpp"
 #include "HybridMediaStream.hpp"
 #include "HybridWebrtcViewSpecSwift.hpp"
@@ -28,6 +30,20 @@
   using namespace margelo::nitro;
   using namespace margelo::nitro::webrtc;
 
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "Microphone",
+    []() -> std::shared_ptr<HybridObject> {
+      std::shared_ptr<HybridMicrophoneSpec> hybridObject = Webrtc::WebrtcAutolinking::createMicrophone();
+      return hybridObject;
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "Camera",
+    []() -> std::shared_ptr<HybridObject> {
+      std::shared_ptr<HybridCameraSpec> hybridObject = Webrtc::WebrtcAutolinking::createCamera();
+      return hybridObject;
+    }
+  );
   HybridObjectRegistry::registerHybridObjectConstructor(
     "MediaStreamTrack",
     []() -> std::shared_ptr<HybridObject> {

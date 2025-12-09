@@ -8,15 +8,30 @@
 #pragma once
 
 // Forward declarations of C++ defined types
+// Forward declaration of `HybridCameraSpec` to properly resolve imports.
+namespace margelo::nitro::webrtc { class HybridCameraSpec; }
+// Forward declaration of `HybridMicrophoneSpec` to properly resolve imports.
+namespace margelo::nitro::webrtc { class HybridMicrophoneSpec; }
 // Forward declaration of `HybridWebrtcViewSpec` to properly resolve imports.
 namespace margelo::nitro::webrtc { class HybridWebrtcViewSpec; }
 
 // Forward declarations of Swift defined types
+// Forward declaration of `HybridCameraSpec_cxx` to properly resolve imports.
+namespace Webrtc { class HybridCameraSpec_cxx; }
+// Forward declaration of `HybridMicrophoneSpec_cxx` to properly resolve imports.
+namespace Webrtc { class HybridMicrophoneSpec_cxx; }
 // Forward declaration of `HybridWebrtcViewSpec_cxx` to properly resolve imports.
 namespace Webrtc { class HybridWebrtcViewSpec_cxx; }
 
 // Include C++ defined types
+#include "HybridCameraSpec.hpp"
+#include "HybridMicrophoneSpec.hpp"
 #include "HybridWebrtcViewSpec.hpp"
+#include <NitroModules/Promise.hpp>
+#include <NitroModules/PromiseHolder.hpp>
+#include <NitroModules/Result.hpp>
+#include <exception>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -27,6 +42,95 @@ namespace Webrtc { class HybridWebrtcViewSpec_cxx; }
  */
 namespace margelo::nitro::webrtc::bridge::swift {
 
+  // pragma MARK: std::shared_ptr<Promise<void>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<void>>`.
+   */
+  using std__shared_ptr_Promise_void__ = std::shared_ptr<Promise<void>>;
+  inline std::shared_ptr<Promise<void>> create_std__shared_ptr_Promise_void__() noexcept {
+    return Promise<void>::create();
+  }
+  inline PromiseHolder<void> wrap_std__shared_ptr_Promise_void__(std::shared_ptr<Promise<void>> promise) noexcept {
+    return PromiseHolder<void>(std::move(promise));
+  }
+  
+  // pragma MARK: std::function<void()>
+  /**
+   * Specialized version of `std::function<void()>`.
+   */
+  using Func_void = std::function<void()>;
+  /**
+   * Wrapper class for a `std::function<void()>`, this can be used from Swift.
+   */
+  class Func_void_Wrapper final {
+  public:
+    explicit Func_void_Wrapper(std::function<void()>&& func): _function(std::make_unique<std::function<void()>>(std::move(func))) {}
+    inline void call() const noexcept {
+      _function->operator()();
+    }
+  private:
+    std::unique_ptr<std::function<void()>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void create_Func_void(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_Wrapper wrap_Func_void(Func_void value) noexcept {
+    return Func_void_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::function<void(const std::exception_ptr& /* error */)>
+  /**
+   * Specialized version of `std::function<void(const std::exception_ptr&)>`.
+   */
+  using Func_void_std__exception_ptr = std::function<void(const std::exception_ptr& /* error */)>;
+  /**
+   * Wrapper class for a `std::function<void(const std::exception_ptr& / * error * /)>`, this can be used from Swift.
+   */
+  class Func_void_std__exception_ptr_Wrapper final {
+  public:
+    explicit Func_void_std__exception_ptr_Wrapper(std::function<void(const std::exception_ptr& /* error */)>&& func): _function(std::make_unique<std::function<void(const std::exception_ptr& /* error */)>>(std::move(func))) {}
+    inline void call(std::exception_ptr error) const noexcept {
+      _function->operator()(error);
+    }
+  private:
+    std::unique_ptr<std::function<void(const std::exception_ptr& /* error */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_std__exception_ptr create_Func_void_std__exception_ptr(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_std__exception_ptr_Wrapper wrap_Func_void_std__exception_ptr(Func_void_std__exception_ptr value) noexcept {
+    return Func_void_std__exception_ptr_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridCameraSpec>
+  /**
+   * Specialized version of `std::shared_ptr<HybridCameraSpec>`.
+   */
+  using std__shared_ptr_HybridCameraSpec_ = std::shared_ptr<HybridCameraSpec>;
+  std::shared_ptr<HybridCameraSpec> create_std__shared_ptr_HybridCameraSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
+  void* NON_NULL get_std__shared_ptr_HybridCameraSpec_(std__shared_ptr_HybridCameraSpec_ cppType);
+  
+  // pragma MARK: std::weak_ptr<HybridCameraSpec>
+  using std__weak_ptr_HybridCameraSpec_ = std::weak_ptr<HybridCameraSpec>;
+  inline std__weak_ptr_HybridCameraSpec_ weakify_std__shared_ptr_HybridCameraSpec_(const std::shared_ptr<HybridCameraSpec>& strong) noexcept { return strong; }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<void>>>
+  using Result_std__shared_ptr_Promise_void___ = Result<std::shared_ptr<Promise<void>>>;
+  inline Result_std__shared_ptr_Promise_void___ create_Result_std__shared_ptr_Promise_void___(const std::shared_ptr<Promise<void>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<void>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_void___ create_Result_std__shared_ptr_Promise_void___(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<void>>>::withError(error);
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridMicrophoneSpec>
+  /**
+   * Specialized version of `std::shared_ptr<HybridMicrophoneSpec>`.
+   */
+  using std__shared_ptr_HybridMicrophoneSpec_ = std::shared_ptr<HybridMicrophoneSpec>;
+  std::shared_ptr<HybridMicrophoneSpec> create_std__shared_ptr_HybridMicrophoneSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
+  void* NON_NULL get_std__shared_ptr_HybridMicrophoneSpec_(std__shared_ptr_HybridMicrophoneSpec_ cppType);
+  
+  // pragma MARK: std::weak_ptr<HybridMicrophoneSpec>
+  using std__weak_ptr_HybridMicrophoneSpec_ = std::weak_ptr<HybridMicrophoneSpec>;
+  inline std__weak_ptr_HybridMicrophoneSpec_ weakify_std__shared_ptr_HybridMicrophoneSpec_(const std::shared_ptr<HybridMicrophoneSpec>& strong) noexcept { return strong; }
+  
   // pragma MARK: std::optional<std::string>
   /**
    * Specialized version of `std::optional<std::string>`.

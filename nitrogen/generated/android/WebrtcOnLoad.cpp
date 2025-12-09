@@ -15,11 +15,13 @@
 #include <fbjni/fbjni.h>
 #include <NitroModules/HybridObjectRegistry.hpp>
 
+#include "JHybridCameraSpec.hpp"
+#include "JHybridMicrophoneSpec.hpp"
 #include "JHybridWebrtcViewSpec.hpp"
 #include "views/JHybridWebrtcViewStateUpdater.hpp"
+#include <NitroModules/DefaultConstructableObject.hpp>
 #include "HybridMediaStreamTrack.hpp"
 #include "HybridMediaStream.hpp"
-#include <NitroModules/DefaultConstructableObject.hpp>
 #include "HybridMediaDevices.hpp"
 #include "HybridRTCRtpSender.hpp"
 #include "HybridRTCRtpReceiver.hpp"
@@ -35,10 +37,28 @@ int initialize(JavaVM* vm) {
 
   return facebook::jni::initialize(vm, [] {
     // Register native JNI methods
+    margelo::nitro::webrtc::JHybridCameraSpec::registerNatives();
+    margelo::nitro::webrtc::JHybridMicrophoneSpec::registerNatives();
     margelo::nitro::webrtc::JHybridWebrtcViewSpec::registerNatives();
     margelo::nitro::webrtc::views::JHybridWebrtcViewStateUpdater::registerNatives();
 
     // Register Nitro Hybrid Objects
+    HybridObjectRegistry::registerHybridObjectConstructor(
+      "Microphone",
+      []() -> std::shared_ptr<HybridObject> {
+        static DefaultConstructableObject<JHybridMicrophoneSpec::javaobject> object("com/webrtc/HybridMicrophone");
+        auto instance = object.create();
+        return instance->cthis()->shared();
+      }
+    );
+    HybridObjectRegistry::registerHybridObjectConstructor(
+      "Camera",
+      []() -> std::shared_ptr<HybridObject> {
+        static DefaultConstructableObject<JHybridCameraSpec::javaobject> object("com/webrtc/HybridCamera");
+        auto instance = object.create();
+        return instance->cthis()->shared();
+      }
+    );
     HybridObjectRegistry::registerHybridObjectConstructor(
       "MediaStreamTrack",
       []() -> std::shared_ptr<HybridObject> {

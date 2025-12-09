@@ -9,6 +9,7 @@ export interface MediaStreamConstraints {
 
 interface MediaDevices extends HybridObject<{ ios: 'c++'; android: 'c++' }> {
   getMockMedia(constraints: MediaStreamConstraints): Promise<MediaStream>
+  getUserMedia(constraints: MediaStreamConstraints): Promise<MediaStream>
 }
 
 const MediaDevicesExport =

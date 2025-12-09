@@ -1,6 +1,8 @@
 #pragma once
 #include "FramePipe.hpp"
+#include "HybridCameraSpec.hpp"
 #include "HybridMediaStreamTrackSpec.hpp"
+#include "HybridMicrophoneSpec.hpp"
 #include "MockCamera.hpp"
 #include "MockMicrophone.hpp"
 #include <thread>
@@ -26,6 +28,8 @@ namespace margelo::nitro::webrtc
       public:
         std::shared_ptr<MockMicrophone> mockMicrophone = nullptr;
         std::shared_ptr<MockCamera> mockCamera = nullptr;
+        std::shared_ptr<HybridMicrophoneSpec> microphone = nullptr;
+        std::shared_ptr<HybridCameraSpec> camera = nullptr;
 
         HybridMediaStreamTrack ()
             : HybridObject (TAG), HybridMediaStreamTrackSpec ()
@@ -70,11 +74,19 @@ namespace margelo::nitro::webrtc
             state = MediaStreamTrackState::ENDED;
             if (mockMicrophone)
             {
-                mockMicrophone->stop ();
+                mockMicrophone->dispose ();
             }
             if (mockCamera)
             {
-                mockCamera->stop ();
+                mockCamera->dispose ();
+            }
+            if (microphone)
+            {
+                microphone->dispose();
+            }
+            if (camera)
+            {
+                camera->dispose();
             }
         };
     };

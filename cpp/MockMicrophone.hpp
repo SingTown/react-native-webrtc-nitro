@@ -29,7 +29,7 @@ class MockMicrophone
             });
     }
 
-    void stop ()
+    void dispose ()
     {
         running.store (false);
         if (mockThread.joinable ())
@@ -38,5 +38,5 @@ class MockMicrophone
         }
     }
 
-    ~MockMicrophone () { stop (); }
+    ~MockMicrophone () { dispose (); }
 };

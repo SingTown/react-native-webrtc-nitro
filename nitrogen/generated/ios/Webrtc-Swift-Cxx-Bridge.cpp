@@ -8,12 +8,62 @@
 #include "Webrtc-Swift-Cxx-Bridge.hpp"
 
 // Include C++ implementation defined types
+#include "HybridCameraSpecSwift.hpp"
+#include "HybridMicrophoneSpecSwift.hpp"
 #include "HybridWebrtcViewSpecSwift.hpp"
 #include "Webrtc-Swift-Cxx-Umbrella.hpp"
 #include <NitroModules/NitroDefines.hpp>
 
 namespace margelo::nitro::webrtc::bridge::swift {
 
+  // pragma MARK: std::function<void()>
+  Func_void create_Func_void(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = Webrtc::Func_void::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)]() mutable -> void {
+      swiftClosure.call();
+    };
+  }
+  
+  // pragma MARK: std::function<void(const std::exception_ptr& /* error */)>
+  Func_void_std__exception_ptr create_Func_void_std__exception_ptr(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = Webrtc::Func_void_std__exception_ptr::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const std::exception_ptr& error) mutable -> void {
+      swiftClosure.call(error);
+    };
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridCameraSpec>
+  std::shared_ptr<HybridCameraSpec> create_std__shared_ptr_HybridCameraSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
+    Webrtc::HybridCameraSpec_cxx swiftPart = Webrtc::HybridCameraSpec_cxx::fromUnsafe(swiftUnsafePointer);
+    return std::make_shared<margelo::nitro::webrtc::HybridCameraSpecSwift>(swiftPart);
+  }
+  void* NON_NULL get_std__shared_ptr_HybridCameraSpec_(std__shared_ptr_HybridCameraSpec_ cppType) {
+    std::shared_ptr<margelo::nitro::webrtc::HybridCameraSpecSwift> swiftWrapper = std::dynamic_pointer_cast<margelo::nitro::webrtc::HybridCameraSpecSwift>(cppType);
+    #ifdef NITRO_DEBUG
+    if (swiftWrapper == nullptr) [[unlikely]] {
+      throw std::runtime_error("Class \"HybridCameraSpec\" is not implemented in Swift!");
+    }
+    #endif
+    Webrtc::HybridCameraSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
+    return swiftPart.toUnsafe();
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridMicrophoneSpec>
+  std::shared_ptr<HybridMicrophoneSpec> create_std__shared_ptr_HybridMicrophoneSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
+    Webrtc::HybridMicrophoneSpec_cxx swiftPart = Webrtc::HybridMicrophoneSpec_cxx::fromUnsafe(swiftUnsafePointer);
+    return std::make_shared<margelo::nitro::webrtc::HybridMicrophoneSpecSwift>(swiftPart);
+  }
+  void* NON_NULL get_std__shared_ptr_HybridMicrophoneSpec_(std__shared_ptr_HybridMicrophoneSpec_ cppType) {
+    std::shared_ptr<margelo::nitro::webrtc::HybridMicrophoneSpecSwift> swiftWrapper = std::dynamic_pointer_cast<margelo::nitro::webrtc::HybridMicrophoneSpecSwift>(cppType);
+    #ifdef NITRO_DEBUG
+    if (swiftWrapper == nullptr) [[unlikely]] {
+      throw std::runtime_error("Class \"HybridMicrophoneSpec\" is not implemented in Swift!");
+    }
+    #endif
+    Webrtc::HybridMicrophoneSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
+    return swiftPart.toUnsafe();
+  }
+  
   // pragma MARK: std::shared_ptr<HybridWebrtcViewSpec>
   std::shared_ptr<HybridWebrtcViewSpec> create_std__shared_ptr_HybridWebrtcViewSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
     Webrtc::HybridWebrtcViewSpec_cxx swiftPart = Webrtc::HybridWebrtcViewSpec_cxx::fromUnsafe(swiftUnsafePointer);
