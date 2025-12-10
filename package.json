@@ -14,8 +14,7 @@
     "build": "pnpm run typecheck && bob build",
     "codegen": "nitrogen --logLevel=\"debug\" && pnpm run build && node post-script.js",
     "lint": "pnpm run lint:cpp",
-    "lint:cpp": "find cpp -path cpp/__tests__/build -prune -o \\( -name \"*.cpp\" -o -name \"*.h\" -o -name \"*.hpp\" \\) -type f -print0 | xargs -0 clang-format -n --Werror -style=file",
-    "outtt": "which clang-format"
+    "lint:cpp": "find cpp -path cpp/__tests__/build -prune -o \\( -name \"*.cpp\" -o -name \"*.h\" -o -name \"*.hpp\" \\) -type f -print0 | xargs -0 clang-format -n --Werror -style=file"
   },
   "keywords": [
     "react-native",
@@ -61,8 +60,8 @@
     "clang-format-node": "^2.0.5",
     "conventional-changelog-conventionalcommits": "^9.1.0",
     "nitrogen": "0.31.10",
-    "react": "19.2.1",
-    "react-native": "0.83.0-rc.4",
+    "react": "19.1.1",
+    "react-native": "0.82.1",
     "react-native-builder-bob": "^0.40.16",
     "react-native-nitro-modules": "0.31.10",
     "semantic-release": "^25.0.2",
