@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/SingTown/react-native-webrtc-nitro/compare/v1.2.0...v1.2.1) (2025-12-14)
+
+### 🛠️ Other changes
+
+* bump libdatachannel viersion ([c483a38](https://github.com/SingTown/react-native-webrtc-nitro/commit/c483a38bc9015dda1e4d47f023efc8f7b5ed4060))
+* update readme ([9a073fd](https://github.com/SingTown/react-native-webrtc-nitro/commit/9a073fd5446797097b4362b77ef7cecda0dbb2de))
+
 ## [1.2.0](https://github.com/SingTown/react-native-webrtc-nitro/compare/v1.1.0...v1.2.0) (2025-12-10)
 
 ### ✨ Features
