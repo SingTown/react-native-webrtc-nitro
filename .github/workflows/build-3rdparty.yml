@@ -51,7 +51,7 @@ jobs:
           ./build_android.sh
 
       - name: Upload 3rdparty artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: 3rdparty-output
           path: 3rdparty/output
