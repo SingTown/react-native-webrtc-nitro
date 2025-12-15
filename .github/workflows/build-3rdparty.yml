@@ -10,7 +10,7 @@ jobs:
 
       - name: Cache 3rdparty output
         id: cache-3rdparty-output
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: 3rdparty/output
           key: ${{ runner.os }}-3rdparty-output-${{ hashFiles('3rdparty/*.sh') }}
