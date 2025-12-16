@@ -36,6 +36,7 @@ export interface RTCRtpTransceiverInit {
 
 export interface RTCIceCandidate {
   readonly candidate: string
+  readonly sdpMid: string | null
 }
 
 export interface RTCIceCandidateInit {

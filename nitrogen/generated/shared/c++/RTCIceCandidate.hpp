@@ -26,6 +26,9 @@
 
 
 #include <string>
+#include <NitroModules/Null.hpp>
+#include <variant>
+#include <optional>
 
 namespace margelo::nitro::webrtc {
 
@@ -35,10 +38,11 @@ namespace margelo::nitro::webrtc {
   struct RTCIceCandidate {
   public:
     std::string candidate     SWIFT_PRIVATE;
+    std::optional<std::variant<nitro::NullType, std::string>> sdpMid     SWIFT_PRIVATE;
 
   public:
     RTCIceCandidate() = default;
-    explicit RTCIceCandidate(std::string candidate): candidate(candidate) {}
+    explicit RTCIceCandidate(std::string candidate, std::optional<std::variant<nitro::NullType, std::string>> sdpMid): candidate(candidate), sdpMid(sdpMid) {}
   };
 
 } // namespace margelo::nitro::webrtc
@@ -51,12 +55,14 @@ namespace margelo::nitro {
     static inline margelo::nitro::webrtc::RTCIceCandidate fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       jsi::Object obj = arg.asObject(runtime);
       return margelo::nitro::webrtc::RTCIceCandidate(
-        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, "candidate"))
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, "candidate")),
+        JSIConverter<std::optional<std::variant<nitro::NullType, std::string>>>::fromJSI(runtime, obj.getProperty(runtime, "sdpMid"))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::webrtc::RTCIceCandidate& arg) {
       jsi::Object obj(runtime);
       obj.setProperty(runtime, "candidate", JSIConverter<std::string>::toJSI(runtime, arg.candidate));
+      obj.setProperty(runtime, "sdpMid", JSIConverter<std::optional<std::variant<nitro::NullType, std::string>>>::toJSI(runtime, arg.sdpMid));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -68,6 +74,7 @@ namespace margelo::nitro {
         return false;
       }
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, "candidate"))) return false;
+      if (!JSIConverter<std::optional<std::variant<nitro::NullType, std::string>>>::canConvert(runtime, obj.getProperty(runtime, "sdpMid"))) return false;
       return true;
     }
   };

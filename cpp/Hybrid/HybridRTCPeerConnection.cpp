@@ -334,7 +334,8 @@ void HybridRTCPeerConnection::setConfiguration (
         {
             if (this->iceCandidateHandler)
             {
-                RTCIceCandidate candidateObj{ candidate.candidate () };
+                RTCIceCandidate candidateObj{ candidate.candidate (),
+                                              candidate.mid () };
                 RTCPeerConnectionIceEvent event{ candidateObj };
                 this->iceCandidateHandler.value () (event);
             }
