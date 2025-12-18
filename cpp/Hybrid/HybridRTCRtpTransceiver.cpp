@@ -1,4 +1,5 @@
 #include "HybridRTCRtpTransceiver.hpp"
+#include "rtcpjitterbuffer.hpp"
 
 using namespace margelo::nitro::webrtc;
 
@@ -219,10 +220,17 @@ void HybridRTCRtpTransceiver::receiverOnOpen ()
 
     AVCodecID avCodecId;
     auto separator = rtc::NalUnit::Separator::StartSequence;
+
+    auto jitterbuffer = std::make_shared<rtc::RtcpJitterBuffer> ();
+    auto rtcpSession = std::make_shared<rtc::RtcpReceivingSession> ();
+
     if (rtpMap->format == "H265")
     {
         auto depacketizer
             = std::make_shared<rtc::H265RtpDepacketizer> (separator);
+        depacketizer->addToChain (jitterbuffer);
+        depacketizer->addToChain (rtcpSession);
+
         track->chainMediaHandler (depacketizer);
         avCodecId = AV_CODEC_ID_H265;
     }
@@ -230,12 +238,18 @@ void HybridRTCRtpTransceiver::receiverOnOpen ()
     {
         auto depacketizer
             = std::make_shared<rtc::H264RtpDepacketizer> (separator);
+        depacketizer->addToChain (jitterbuffer);
+        depacketizer->addToChain (rtcpSession);
+
         track->chainMediaHandler (depacketizer);
         avCodecId = AV_CODEC_ID_H264;
     }
     else if (rtpMap->format == "opus")
     {
         auto depacketizer = std::make_shared<rtc::OpusRtpDepacketizer> ();
+        depacketizer->addToChain (jitterbuffer);
+        depacketizer->addToChain (rtcpSession);
+
         track->chainMediaHandler (depacketizer);
         avCodecId = AV_CODEC_ID_OPUS;
     }
