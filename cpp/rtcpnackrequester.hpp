@@ -11,22 +11,28 @@ namespace rtc
     {
       public:
         RtcpNackRequester (SSRC ssrc, size_t jitterSize = 5,
-                           size_t nackWaitMs = 50);
+                           size_t nackResendIntervalMs = 10,
+                           size_t nackResendTimesMax = 10);
         SSRC ssrc;
         void incoming (message_vector &messages,
                        const message_callback &send) override;
 
       private:
         size_t jitterSize;
-        size_t nackWaitMs;
+        size_t nackResendIntervalMs;
+        size_t nackResendTimesMax;
 
-        uint16_t expectSequence = 0;
-        std::chrono::steady_clock::time_point nackWaitUntil;
+        bool initialized = false;
+        uint16_t expectedSeq;
+        size_t nackResendTimes = 0;
+        std::chrono::steady_clock::time_point nextNackTime
+            = std::chrono::steady_clock::now ();
 
-        std::map<uint16_t, message_ptr> receivePackets;
-        std::set<uint16_t> lostSequenceNumbers;
+        std::map<uint16_t, message_ptr> jitterBuffer;
 
-        auto nackMesssage (uint16_t sequence) -> message_ptr;
+        auto isSeqNewerOrEqual (uint16_t seq1, uint16_t seq2) -> bool;
+        void clearBuffer ();
+        auto nackMessage (uint16_t sequence) -> message_ptr;
     };
 
 } // namespace rtc

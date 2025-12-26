@@ -3,8 +3,11 @@
 namespace rtc
 {
     RtcpNackRequester::RtcpNackRequester (SSRC ssrc, size_t jitterSize,
-                                          size_t nackWaitMs)
-        : ssrc (ssrc), jitterSize (jitterSize), nackWaitMs (nackWaitMs)
+                                          size_t nackResendIntervalMs,
+                                          size_t nackResendTimesMax)
+        : ssrc (ssrc), jitterSize (jitterSize),
+          nackResendIntervalMs (nackResendIntervalMs),
+          nackResendTimesMax (nackResendTimesMax)
     {
     }
 
@@ -30,54 +33,68 @@ namespace rtc
             auto rtp = reinterpret_cast<RtpHeader *> (message->data ());
             uint16_t seqNo = rtp->seqNumber ();
 
-            lostSequenceNumbers.erase (seqNo);
-            if (expectSequence == 0)
+            if (!initialized)
             {
-                expectSequence = seqNo;
+                expectedSeq = seqNo;
+                initialized = true;
             }
-            if ((int16_t)(seqNo - expectSequence) >= 0)
+            if (isSeqNewerOrEqual (seqNo, expectedSeq))
             {
-                receivePackets[seqNo] = message;
+                jitterBuffer[seqNo] = message;
             }
         }
 
-        while (receivePackets.size () > jitterSize)
+        while (jitterBuffer.size () > jitterSize)
         {
-            bool alreadyReceived = receivePackets.count (expectSequence) > 0;
+            bool alreadyReceived = jitterBuffer.count (expectedSeq) > 0;
             if (alreadyReceived)
             {
-                auto packet = receivePackets[expectSequence];
+                auto packet = jitterBuffer[expectedSeq];
                 result.push_back (packet);
-                receivePackets.erase (expectSequence);
-                expectSequence++;
+                jitterBuffer.erase (expectedSeq);
+                expectedSeq++;
+                nackResendTimes = 0;
                 continue;
             }
             else
             {
-                bool alreadySentNack
-                    = lostSequenceNumbers.count (expectSequence) > 0;
+                if (nackResendTimes >= nackResendTimesMax)
+                {
+                    clearBuffer ();
+                    break;
+                }
+
                 auto now = std::chrono::steady_clock::now ();
-                if (alreadySentNack)
+                if (now > nextNackTime)
                 {
-                    if (now >= nackWaitUntil)
-                    {
-                        expectSequence++;
-                    }
+                    nextNackTime
+                        = now
+                          + std::chrono::milliseconds (nackResendIntervalMs);
+                    send (nackMessage (expectedSeq));
+                    nackResendTimes++;
                 }
-                else
-                {
-                    lostSequenceNumbers.insert (expectSequence);
-                    nackWaitUntil
-                        = now + std::chrono::milliseconds (nackWaitMs);
-                    send (nackMesssage (expectSequence));
-                }
+
                 break;
             }
         }
         messages.swap (result);
     }
 
-    auto RtcpNackRequester::nackMesssage (uint16_t sequence) -> message_ptr
+    auto RtcpNackRequester::isSeqNewerOrEqual (uint16_t seq1, uint16_t seq2)
+        -> bool
+    {
+        return (int16_t)(seq1 - seq2) >= 0;
+    }
+
+    void RtcpNackRequester::clearBuffer ()
+    {
+        initialized = false;
+        jitterBuffer.clear ();
+        nackResendTimes = 0;
+        nextNackTime = std::chrono::steady_clock::now ();
+    }
+
+    auto RtcpNackRequester::nackMessage (uint16_t sequence) -> message_ptr
     {
         unsigned int fciCount = 0;
         uint16_t fciPID = 0;
