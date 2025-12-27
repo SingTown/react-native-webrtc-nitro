@@ -32,9 +32,15 @@ void Encoder::_init (const Frame &frame)
     {
         throw std::runtime_error ("Could not allocate AVCodecContext");
     }
+
+    AVDictionary *opts = nullptr;
     this->basePts = frame->pts;
     if (encoder->id == AV_CODEC_ID_H264)
     {
+        int ret
+            = av_dict_set (&opts, "codec_name", "c2.android.hevc.encoder", 0);
+        checkError (ret, "av_dict_set codec_name");
+
         ctx->codec_id = AV_CODEC_ID_H264;
         ctx->width = frame->width;
         ctx->height = frame->height;
@@ -48,6 +54,10 @@ void Encoder::_init (const Frame &frame)
     }
     else if (encoder->id == AV_CODEC_ID_H265)
     {
+        int ret
+            = av_dict_set (&opts, "codec_name", "c2.android.hevc.encoder", 0);
+        checkError (ret, "av_dict_set codec_name");
+
         ctx->codec_id = AV_CODEC_ID_H265;
         ctx->width = frame->width;
         ctx->height = frame->height;
@@ -91,7 +101,7 @@ void Encoder::_init (const Frame &frame)
                                   + std::to_string (encoder->id));
     }
     ctx->flags |= AV_CODEC_FLAG_LOW_DELAY;
-    int ret = avcodec_open2 (ctx, encoder, nullptr);
+    int ret = avcodec_open2 (ctx, encoder, &opts);
     checkError (ret, "avcodec_open2");
 }
 
