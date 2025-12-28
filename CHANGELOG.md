@@ -1,3 +1,30 @@
+## [1.6.0](https://github.com/SingTown/react-native-webrtc-nitro/compare/v1.5.0...v1.6.0) (2025-12-28)
+
+### ✨ Features
+
+* add encoder fallback ([e812a7d](https://github.com/SingTown/react-native-webrtc-nitro/commit/e812a7d0e04f919165b14ebd7d51bd39f8e2ebe7))
+* add nack resend ([13c8028](https://github.com/SingTown/react-native-webrtc-nitro/commit/13c80280c3f9496a5867f08c5535d4d4e126c656))
+
+### 🐛 Bug Fixes
+
+* audio track non blocking ([0820c6b](https://github.com/SingTown/react-native-webrtc-nitro/commit/0820c6b210233abea4f005f7ddf88353ee011a55))
+
+### 🛠️ Other changes
+
+* dependabot monthly ([7711591](https://github.com/SingTown/react-native-webrtc-nitro/commit/771159177b7f9aa9bb47d007ff71d9296e720867))
+* **deps-dev:** bump clang-format-node from 2.0.5 to 2.0.7 ([c9487ca](https://github.com/SingTown/react-native-webrtc-nitro/commit/c9487ca686b5b86fcbc7eb3a42e1f2c4826f2c2d))
+* **deps:** bump @react-navigation/native-stack from 7.8.6 to 7.9.0 ([c10c8fc](https://github.com/SingTown/react-native-webrtc-nitro/commit/c10c8fc831230dc19765ce087e608184f9503ad6))
+* **deps:** bump @react-navigation/native-stack in /example ([96bd388](https://github.com/SingTown/react-native-webrtc-nitro/commit/96bd388b51f6f17fdcfbf9df2754e9c0d5b9c32e))
+* **deps:** bump actions/download-artifact from 6 to 7 ([17bca52](https://github.com/SingTown/react-native-webrtc-nitro/commit/17bca5259eae71e877ecae860c3da6b0d26683c3))
+* **deps:** bump bigdecimal from 3.3.1 to 4.0.1 in /example ([e92ea17](https://github.com/SingTown/react-native-webrtc-nitro/commit/e92ea17f2de0c246d7dce3c195c0cf3ebe869e4b))
+* **deps:** bump cocoapods from 1.15.2 to 1.16.2 in /example ([73eba11](https://github.com/SingTown/react-native-webrtc-nitro/commit/73eba11173f53532eb30a0cabfeed4312010a5ae))
+* **deps:** bump com.android.tools.build:gradle in /android ([918f521](https://github.com/SingTown/react-native-webrtc-nitro/commit/918f52177b55d22e22f9a863b19daae127583a7d))
+* **deps:** bump concurrent-ruby from 1.3.5 to 1.3.6 in /example ([38e9f86](https://github.com/SingTown/react-native-webrtc-nitro/commit/38e9f86a1a329733a70e5e41e24755ea533d0b13))
+* **deps:** bump the nitro group across 2 directories with 2 updates ([95c22a0](https://github.com/SingTown/react-native-webrtc-nitro/commit/95c22a0c50a99c55a80c7af14b4323546ee19bf1))
+* **deps:** bump the react-native group across 2 directories with 8 updates ([ff22d9d](https://github.com/SingTown/react-native-webrtc-nitro/commit/ff22d9d884d761a9eea44575e1eb7e0b5e8d408e))
+* pod lock ([98fb726](https://github.com/SingTown/react-native-webrtc-nitro/commit/98fb726023d434b722bfadc534f68370b2008834))
+* **release:** 1.6.0 [skip ci] ([8d0a593](https://github.com/SingTown/react-native-webrtc-nitro/commit/8d0a59344925990b6019d7c562db6031641f44ef))
+
 ## [1.5.0](https://github.com/SingTown/react-native-webrtc-nitro/compare/v1.4.0...v1.5.0) (2025-12-26)
 
 ### ✨ Features
