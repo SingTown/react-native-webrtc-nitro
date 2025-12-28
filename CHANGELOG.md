@@ -1,3 +1,9 @@
+## [1.7.0](https://github.com/SingTown/react-native-webrtc-nitro/compare/v1.6.0...v1.7.0) (2025-12-28)
+
+### ✨ Features
+
+* MPL-2.0 license ([f73efcf](https://github.com/SingTown/react-native-webrtc-nitro/commit/f73efcf63f6c7fc6fe9ee64406bb7ef55c7bc7b2))
+
 ## [1.6.0](https://github.com/SingTown/react-native-webrtc-nitro/compare/v1.5.0...v1.6.0) (2025-12-28)
 
 ### ✨ Features
