@@ -4,7 +4,7 @@ updates:
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
-      interval: 'daily'
+      interval: 'monthly'
     labels:
       - 'dependencies'
 
@@ -13,7 +13,7 @@ updates:
       - '/android/'
       - '/example/android/'
     schedule:
-      interval: 'daily'
+      interval: 'monthly'
     labels:
       - 'nitro-core'
       - 'nitrogen'
@@ -23,7 +23,7 @@ updates:
   - package-ecosystem: 'bundler'
     directory: '/example/'
     schedule:
-      interval: 'daily'
+      interval: 'monthly'
     labels:
       - 'dependencies'
       - 'ruby'
@@ -33,7 +33,7 @@ updates:
       - '/example/'
       - '/'
     schedule:
-      interval: 'daily'
+      interval: 'monthly'
     labels:
       - 'nitro-core'
       - 'dependencies'
