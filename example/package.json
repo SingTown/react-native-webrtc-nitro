@@ -14,10 +14,10 @@
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-camera-roll/camera-roll": "^7.10.2",
     "@react-native-clipboard/clipboard": "^1.16.3",
-    "@react-native/new-app-screen": "0.82.1",
+    "@react-native/new-app-screen": "0.83.1",
     "@react-navigation/native-stack": "^7.8.5",
     "path-browserify": "^1.0.1",
-    "react": "19.1.1",
+    "react": "19.2.3",
     "react-native-fs": "^2.20.0",
     "react-native-nitro-modules": "0.31.10",
     "react-native-safe-area-context": "^5.6.2",
@@ -30,13 +30,13 @@
     "@react-native-community/cli": "20.0.2",
     "@react-native-community/cli-platform-android": "20.0.2",
     "@react-native-community/cli-platform-ios": "20.0.2",
-    "@react-native/babel-preset": "0.82.1",
-    "@react-native/eslint-config": "0.82.1",
-    "@react-native/metro-config": "0.82.1",
-    "@react-native/typescript-config": "0.82.1",
+    "@react-native/babel-preset": "0.83.1",
+    "@react-native/eslint-config": "0.83.1",
+    "@react-native/metro-config": "0.83.1",
+    "@react-native/typescript-config": "0.83.1",
     "@types/jest": "^30.0.0",
     "babel-plugin-module-resolver": "^5.0.2",
-      "react-native": "0.82.1"
+      "react-native": "0.83.1"
   },
   "engines": {
     "node": ">=20"
