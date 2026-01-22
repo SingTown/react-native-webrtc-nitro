@@ -31,7 +31,7 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
 
     external fun unsubscribe(subscriptionId: Int)
     external fun subscribeAudio(pipeId: String, track: AudioTrack): Int
-    external fun subscribeVideo(pipeId: String, surface: Surface): Int
+    external fun subscribeVideo(pipeId: String, surface: Surface, resizeMode: Int): Int
 
     private var _audioPipeId: String? = null
     private var _videoPipeId: String? = null
@@ -91,6 +91,19 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
     override var videoPipeId: String?
         get() = _videoPipeId
         set(value) {
-            updateVideoPipeId(value, view.holder.surface)
+    
+    private var _resizeMode: Int = 0
+    override var resizeMode: String?
+        get() = when(_resizeMode) {
+            1 -> "cover"
+            2 -> "fill"
+            else -> "contain"
+        }
+        set(value) {
+            _resizeMode = when(value?.lowercase()) {
+                "cover" -> 1
+                "fill" -> 2
+                else -> 0
+            }
         }
 }

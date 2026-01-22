@@ -14,9 +14,10 @@ const WebrtcViewNitro = getHostComponent<WebrtcViewProps, WebrtcViewMethods>(
 export interface WebrtcViewComponentProps {
   stream: MediaStream | null
   style?: StyleProp<ViewStyle>
+  resizeMode?: 'contain' | 'cover' | 'fill'
 }
 
-export function WebrtcView({ stream, style }: WebrtcViewComponentProps) {
+export function WebrtcView({ stream, style, resizeMode }: WebrtcViewComponentProps) {
   const videoPipeId = stream?.getVideoTracks()?.[0]?._dstPipeId
   const audioPipeId = stream?.getAudioTracks()?.[0]?._dstPipeId
   return (
@@ -24,6 +25,7 @@ export function WebrtcView({ stream, style }: WebrtcViewComponentProps) {
       audioPipeId={audioPipeId}
       videoPipeId={videoPipeId}
       style={style}
+      resizeMode={resizeMode}
     />
   )
 }

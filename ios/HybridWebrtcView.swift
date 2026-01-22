@@ -9,23 +9,52 @@ import AVFoundation
 import Foundation
 import UIKit
 
+enum ResizeMode: String {
+    case contain = "contain"
+    case cover = "cover"
+    case fill = "fill"
+
+    var avVideoGravity: AVLayerVideoGravity {
+        switch self {
+        case .contain:
+            return .resizeAspect
+        case .cover:
+            return .resize
+        case .fill:
+            return .resizeAspectFill
+        }
+    }
+}
+
 class WebrtcDisplayView: UIView {
     var displayLayer: AVSampleBufferDisplayLayer = AVSampleBufferDisplayLayer()
-    
+
+    var resizeMode: ResizeMode = .contain {
+        didSet {
+            updateVideoGravity()
+        }
+    }
+
     override init(frame: CGRect) {
         super.init(frame: frame)
-        displayLayer.videoGravity = .resizeAspectFill
-        displayLayer.frame = bounds
-        layer.addSublayer(displayLayer)
+        commonInit()
     }
-    
+
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        displayLayer.videoGravity = .resizeAspectFill
+        commonInit()
+    }
+
+    private func commonInit() {
+        updateVideoGravity()
         displayLayer.frame = bounds
         layer.addSublayer(displayLayer)
     }
-    
+
+    private func updateVideoGravity() {
+        displayLayer.videoGravity = resizeMode.avVideoGravity
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         displayLayer.frame = bounds
@@ -84,7 +113,21 @@ class HybridWebrtcView: HybridWebrtcViewSpec {
     
     var videoSubscriptionId: Int32 = -1
     fileprivate static let lock = NSLock()
-    
+
+    var resizeMode: String? = "contain" {
+        didSet {
+            if let displayView = view as? WebrtcDisplayView {
+                if resizeMode == "contain" {
+                    displayView.resizeMode = ResizeMode.contain
+                } else if resizeMode == "cover" {
+                    displayView.resizeMode = ResizeMode.cover
+                } else if resizeMode == "fill" {
+                    displayView.resizeMode = ResizeMode.fill
+                }
+            }
+        }
+    }
+
     var audioPipeId: String? {
         didSet {
             Self.lock.lock()

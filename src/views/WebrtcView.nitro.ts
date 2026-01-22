@@ -7,6 +7,7 @@ import type {
 export interface WebrtcViewProps extends HybridViewProps {
   videoPipeId?: string
   audioPipeId?: string
+  resizeMode?: string
 }
 
 export interface WebrtcViewMethods extends HybridViewMethods {}

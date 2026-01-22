@@ -6,6 +6,13 @@
 #include <chrono>
 #include <jni.h>
 #include <string>
+#include <cstdint>
+
+enum class ResizeMode : uint8_t {
+    CONTAIN = 0,
+    FILL    = 1,
+    COVER   = 2,
+};
 
 JavaVM *gJvm = nullptr;
 
@@ -66,51 +73,144 @@ Java_com_webrtc_HybridWebrtcView_subscribeAudio (JNIEnv *env, jobject,
     return subscribe ({ pipeIdStr }, callback);
 }
 
+struct VideoRenderContext {
+    std::mutex mutex;
+    ANativeWindow* window = nullptr;
+    std::atomic<bool> alive{true};
+};
+
 extern "C" JNIEXPORT auto JNICALL
-Java_com_webrtc_HybridWebrtcView_subscribeVideo (JNIEnv *env, jobject,
-                                                 jstring pipeId,
-                                                 jobject surface) -> jint
-{
-    if (!surface)
-    {
-        return -1;
-    }
-    ANativeWindow *window = ANativeWindow_fromSurface (env, surface);
-    if (!window)
-    {
+Java_com_webrtc_HybridWebrtcView_subscribeVideo(
+    JNIEnv* env,
+    jobject,
+    jstring pipeId,
+    jobject surface,
+    jint resizeMode
+) {
+    if (!surface) {
         return -1;
     }
 
-    auto scaler = std::make_shared<FFmpeg::Scaler> ();
-    FrameCallback callback
-        = [window, scaler] (const std::string &, int, const FFmpeg::Frame &raw)
-    {
-        FFmpeg::Frame frame
-            = scaler->scale (raw, AV_PIX_FMT_RGBA, raw->width, raw->height);
+    ANativeWindow* nativeWindow = ANativeWindow_fromSurface(env, surface);
+    if (!nativeWindow) {
+        return -1;
+    }
 
-        ANativeWindow_setBuffersGeometry (window, frame->width, frame->height,
-                                          WINDOW_FORMAT_RGBA_8888);
+    auto context = std::make_shared<VideoRenderContext>();
+    context->window = nativeWindow;
 
-        ANativeWindow_Buffer buffer;
-        if (ANativeWindow_lock (window, &buffer, nullptr) < 0)
-        {
-            return;
-        }
+    auto scaler = std::make_shared<FFmpeg::Scaler>();
+    auto mode = static_cast<ResizeMode>(resizeMode);
 
-        auto *dst = static_cast<uint8_t *> (buffer.bits);
-        for (int y = 0; y < frame->height; ++y)
-        {
-            uint8_t *srcRow = frame->data[0] + y * frame->linesize[0];
-            uint8_t *dstRow = dst + y * buffer.stride * 4;
-            memcpy (dstRow, srcRow, frame->width * 4);
-        }
+    FrameCallback callback =
+        [context, scaler, mode](const std::string&, int, const FFmpeg::Frame& raw) {
+            if (!context->alive.load()) return;
 
-        ANativeWindow_unlockAndPost (window);
-    };
-    CleanupCallback cleanup
-        = [window] (int) { ANativeWindow_release (window); };
-    std::string pipeIdStr (env->GetStringUTFChars (pipeId, nullptr));
-    return subscribe ({ pipeIdStr }, callback, cleanup);
+            std::lock_guard<std::mutex> lock(context->mutex);
+            ANativeWindow* window = context->window;
+            if (!window) return;
+
+            if (raw->width <= 0 || raw->height <= 0) return;
+
+            int winW = ANativeWindow_getWidth(window);
+            int winH = ANativeWindow_getHeight(window);
+            if (winW <= 0 || winH <= 0) return;
+
+            float sx = static_cast<float>(winW) / raw->width;
+            float sy = static_cast<float>(winH) / raw->height;
+
+            float scale = 1.f;
+            bool stretch = false;
+
+            switch (mode) {
+                case ResizeMode::FILL:
+                    stretch = true;
+                    break;
+                case ResizeMode::COVER:
+                    scale = std::max(sx, sy);
+                    break;
+                case ResizeMode::CONTAIN:
+                default:
+                    scale = std::min(sx, sy);
+                    break;
+            }
+
+            int outW = stretch ? winW : static_cast<int>(raw->width * scale);
+            int outH = stretch ? winH : static_cast<int>(raw->height * scale);
+            if (outW <= 0 || outH <= 0) return;
+
+            FFmpeg::Frame frame =
+                scaler->scale(raw, AV_PIX_FMT_RGBA, outW, outH);
+
+            if (frame->width <= 0 || frame->height <= 0) return;
+
+            ANativeWindow_setBuffersGeometry(
+                window,
+                winW,
+                winH,
+                WINDOW_FORMAT_RGBA_8888
+            );
+
+            ANativeWindow_Buffer buffer;
+            if (ANativeWindow_lock(window, &buffer, nullptr) < 0) return;
+
+            std::memset(buffer.bits, 0, buffer.stride * winH * 4);
+
+            int offsetX = (winW - frame->width) / 2;
+            int offsetY = (winH - frame->height) / 2;
+
+            for (int y = 0; y < frame->height; ++y) {
+                int dstY = y + offsetY;
+                if (dstY < 0 || dstY >= winH) continue;
+
+                uint8_t* src = frame->data[0] + y * frame->linesize[0];
+
+                int copyX = offsetX;
+                int srcX = 0;
+                int copyW = frame->width;
+
+                if (copyX < 0) {
+                    srcX = -copyX;
+                    copyW -= srcX;
+                    copyX = 0;
+                }
+
+                if (copyX + copyW > winW) {
+                    copyW = winW - copyX;
+                }
+
+                if (copyX + copyW > buffer.stride) {
+                    copyW = buffer.stride - copyX;
+                }
+
+                if (copyW <= 0) continue;
+
+                uint8_t* dst =
+                    static_cast<uint8_t*>(buffer.bits) +
+                    dstY * buffer.stride * 4 +
+                    copyX * 4;
+
+                std::memcpy(dst, src + srcX * 4, copyW * 4);
+            }
+
+            ANativeWindow_unlockAndPost(window);
+        };
+
+    CleanupCallback cleanup =
+        [context](int) {
+            context->alive.store(false);
+            std::lock_guard<std::mutex> lock(context->mutex);
+            if (context->window) {
+                ANativeWindow_release(context->window);
+                context->window = nullptr;
+            }
+        };
+
+    const char* cstr = env->GetStringUTFChars(pipeId, nullptr);
+    std::string pipeIdStr(cstr);
+    env->ReleaseStringUTFChars(pipeId, cstr);
+
+    return subscribe({pipeIdStr}, callback, cleanup);
 }
 
 extern "C" JNIEXPORT void JNICALL
