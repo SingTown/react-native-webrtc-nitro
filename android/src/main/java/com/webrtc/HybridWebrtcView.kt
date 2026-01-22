@@ -16,18 +16,20 @@ import com.margelo.nitro.webrtc.HybridWebrtcViewSpec
 class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec() {
     // View
     override val view: SurfaceView = SurfaceView(context)
-    private var audioTrack = AudioTrack(
-        AudioManager.STREAM_MUSIC,
-        48000,
-        AudioFormat.CHANNEL_OUT_STEREO,
-        AudioFormat.ENCODING_PCM_16BIT,
-        AudioTrack.getMinBufferSize(
+    companion object {
+        private var audioTrack = AudioTrack(
+            AudioManager.STREAM_MUSIC,
             48000,
             AudioFormat.CHANNEL_OUT_STEREO,
-            AudioFormat.ENCODING_PCM_16BIT
-        ) * 4,
-        AudioTrack.MODE_STREAM
-    )
+            AudioFormat.ENCODING_PCM_16BIT,
+            AudioTrack.getMinBufferSize(
+                48000,
+                AudioFormat.CHANNEL_OUT_STEREO,
+                AudioFormat.ENCODING_PCM_16BIT
+            ) * 4,
+            AudioTrack.MODE_STREAM
+        )
+    }
 
     external fun unsubscribe(subscriptionId: Int)
     external fun subscribeAudio(pipeId: String, track: AudioTrack): Int
@@ -52,11 +54,13 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
             audioTrack.play()
         }
 
+    private var surfaceReady = false
 
     init {
         view.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
-                updateVideoPipeId(_videoPipeId, holder.surface)
+                surfaceReady = true
+                bindVideoPipeId(holder.surface)
             }
 
             override fun surfaceChanged(
@@ -65,32 +69,40 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
                 width: Int,
                 height: Int
             ) {
-                updateVideoPipeId(_videoPipeId, holder.surface)
             }
 
             override fun surfaceDestroyed(holder: SurfaceHolder) {
-                updateVideoPipeId(_videoPipeId, null)
+                surfaceReady = false
+                unbindVideoPipeId()
             }
         })
     }
 
-    private fun updateVideoPipeId(newVideoPipeId: String?, surface: Surface?) {
-        if (this.videoSubscriptionId > 0) {
-            this.unsubscribe(this.videoSubscriptionId)
+    private fun unbindVideoPipeId() {
+        if (videoSubscriptionId > 0) {
+            unsubscribe(videoSubscriptionId)
+            videoSubscriptionId = -1
         }
-        if (surface == null) {
-            return;
-        }
-        if (newVideoPipeId.isNullOrEmpty()) {
-            return;
-        }
-        this.videoSubscriptionId = subscribeVideo(newVideoPipeId, surface)
-        this._videoPipeId = newVideoPipeId
+    }
+
+    private fun bindVideoPipeId(surface: Surface) {
+        if (!surfaceReady) return
+        if (videoSubscriptionId > 0) return
+        if (_videoPipeId.isNullOrEmpty()) return
+
+        videoSubscriptionId = subscribeVideo(_videoPipeId!!, surface, _resizeMode)
     }
 
     override var videoPipeId: String?
         get() = _videoPipeId
         set(value) {
+            _videoPipeId = value
+
+            if (surfaceReady) {
+                unbindVideoPipeId()
+                bindVideoPipeId(view.holder.surface)
+            }
+        }
     
     private var _resizeMode: Int = 0
     override var resizeMode: String?

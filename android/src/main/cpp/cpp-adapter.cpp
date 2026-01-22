@@ -70,7 +70,7 @@ Java_com_webrtc_HybridWebrtcView_subscribeAudio (JNIEnv *env, jobject,
     };
 
     std::string pipeIdStr (env->GetStringUTFChars (pipeId, nullptr));
-    return subscribe ({ pipeIdStr }, callback);
+    return subscribe ({ pipeIdStr }, callback, cleanup);
 }
 
 struct VideoRenderContext {
