@@ -22,17 +22,16 @@ JNIEXPORT auto JNICALL JNI_OnLoad (JavaVM *vm, void *) -> jint
     return margelo::nitro::webrtc::initialize (vm);
 }
 
-extern "C" JNIEXPORT void JNICALL
+extern "C" JNIEXPORT auto JNICALL
 Java_com_webrtc_HybridWebrtcView_unsubscribe (JNIEnv *, jobject,
-                                              jint subscriptionId)
+                                              jint subscriptionId) -> void
 {
     unsubscribe (subscriptionId);
 }
 
 extern "C" JNIEXPORT auto JNICALL
 Java_com_webrtc_HybridWebrtcView_subscribeAudio (JNIEnv *env, jobject,
-                                                 jstring pipeId, jobject track)
-    -> int
+                                                 jstring pipeId, jobject track) -> jint
 {
     auto resampler = std::make_shared<FFmpeg::Resampler> ();
     jobject trackGlobal = env->NewGlobalRef (track);
@@ -86,7 +85,7 @@ Java_com_webrtc_HybridWebrtcView_subscribeVideo(
     jstring pipeId,
     jobject surface,
     jint resizeMode
-) {
+) -> jint {
     if (!surface) {
         return -1;
     }
@@ -210,14 +209,14 @@ Java_com_webrtc_HybridWebrtcView_subscribeVideo(
     std::string pipeIdStr(cstr);
     env->ReleaseStringUTFChars(pipeId, cstr);
 
-    return subscribe({pipeIdStr}, callback, cleanup);
+    return static_cast<jint>(subscribe({pipeIdStr}, callback, cleanup));
 }
 
-extern "C" JNIEXPORT void JNICALL
+extern "C" JNIEXPORT auto JNICALL
 Java_com_webrtc_HybridMicrophone_publishAudio (JNIEnv *env, jobject,
                                                jstring pipeId,
                                                jbyteArray audioBuffer,
-                                               jint size)
+                                               jint size) -> void
 
 {
     auto frame = FFmpeg::Frame (AV_SAMPLE_FMT_S16, 48000, 1, size / 2);
@@ -230,8 +229,8 @@ Java_com_webrtc_HybridMicrophone_publishAudio (JNIEnv *env, jobject,
     publish (pipeIdStr, frame);
 }
 
-extern "C" JNIEXPORT void JNICALL Java_com_webrtc_Camera_publishVideo (
-    JNIEnv *env, jobject, jobjectArray pipeIds, jobject image)
+extern "C" JNIEXPORT auto JNICALL Java_com_webrtc_Camera_publishVideo (
+    JNIEnv *env, jobject, jobjectArray pipeIds, jobject image) -> void
 {
     jclass imageClass = env->GetObjectClass (image);
     jmethodID getWidthMethod
