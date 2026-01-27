@@ -66,6 +66,12 @@ Java_com_webrtc_HybridWebrtcView_subscribeAudio (JNIEnv *env, jobject,
     return subscribe ({ pipeIdStr }, callback);
 }
 
+struct VideoRenderContext {
+    std::mutex mutex;
+    ANativeWindow* window = nullptr;
+    std::atomic<bool> alive{true};
+};
+
 extern "C" JNIEXPORT auto JNICALL
 Java_com_webrtc_HybridWebrtcView_subscribeVideo (JNIEnv *env, jobject,
                                                  jstring pipeId,
@@ -75,18 +81,26 @@ Java_com_webrtc_HybridWebrtcView_subscribeVideo (JNIEnv *env, jobject,
     {
         return -1;
     }
-    ANativeWindow *window = ANativeWindow_fromSurface (env, surface);
-    if (!window)
-    {
+    ANativeWindow *nativeWindow = ANativeWindow_fromSurface (env, surface);
+    if (!nativeWindow) {
         return -1;
     }
 
+    auto context = std::make_shared<VideoRenderContext>();
+    context->window = nativeWindow;
+
     auto scaler = std::make_shared<FFmpeg::Scaler> ();
     FrameCallback callback
-        = [window, scaler] (const std::string &, int, const FFmpeg::Frame &raw)
+        = [context, scaler] (const std::string &, int, const FFmpeg::Frame &raw)
     {
+        if (!context->alive.load()) return;
+
         FFmpeg::Frame frame
             = scaler->scale (raw, AV_PIX_FMT_RGBA, raw->width, raw->height);
+
+        std::lock_guard<std::mutex> lock(context->mutex);
+        ANativeWindow* window = context->window;
+        if (!window) return;
 
         ANativeWindow_setBuffersGeometry (window, frame->width, frame->height,
                                           WINDOW_FORMAT_RGBA_8888);
@@ -108,7 +122,14 @@ Java_com_webrtc_HybridWebrtcView_subscribeVideo (JNIEnv *env, jobject,
         ANativeWindow_unlockAndPost (window);
     };
     CleanupCallback cleanup
-        = [window] (int) { ANativeWindow_release (window); };
+        = [context] (int) {
+            context->alive.store(false);
+            std::lock_guard<std::mutex> lock(context->mutex);
+            if (context->window) {
+                ANativeWindow_release (context->window);
+                context->window = nullptr;
+            }
+        };
     std::string pipeIdStr (env->GetStringUTFChars (pipeId, nullptr));
     return subscribe ({ pipeIdStr }, callback, cleanup);
 }
