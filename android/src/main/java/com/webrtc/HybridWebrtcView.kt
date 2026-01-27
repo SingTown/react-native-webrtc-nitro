@@ -16,18 +16,20 @@ import com.margelo.nitro.webrtc.HybridWebrtcViewSpec
 class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec() {
     // View
     override val view: SurfaceView = SurfaceView(context)
-    private var audioTrack = AudioTrack(
-        AudioManager.STREAM_MUSIC,
-        48000,
-        AudioFormat.CHANNEL_OUT_STEREO,
-        AudioFormat.ENCODING_PCM_16BIT,
-        AudioTrack.getMinBufferSize(
+    companion object {
+        private var audioTrack = AudioTrack(
+            AudioManager.STREAM_MUSIC,
             48000,
             AudioFormat.CHANNEL_OUT_STEREO,
-            AudioFormat.ENCODING_PCM_16BIT
-        ) * 4,
-        AudioTrack.MODE_STREAM
-    )
+            AudioFormat.ENCODING_PCM_16BIT,
+            AudioTrack.getMinBufferSize(
+                48000,
+                AudioFormat.CHANNEL_OUT_STEREO,
+                AudioFormat.ENCODING_PCM_16BIT
+            ) * 4,
+            AudioTrack.MODE_STREAM
+        )
+    }
 
     external fun unsubscribe(subscriptionId: Int)
     external fun subscribeAudio(pipeId: String, track: AudioTrack): Int
