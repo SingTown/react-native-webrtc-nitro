@@ -1,14 +1,27 @@
 #include "FramePipe.hpp"
+#include <algorithm>
+#include <atomic>
+#include <shared_mutex>
 #include <unordered_map>
+#include <utility>
 
-static std::recursive_mutex mutex;
+static std::shared_mutex mutex;
 static int nextSubscriptionId = 1;
 
 struct Subscription
 {
+    Subscription (std::vector<std::string> pipeIds, FrameCallback onFrame,
+                  CleanupCallback onCleanup)
+        : pipeIds (std::move (pipeIds)),
+          onFrame (std::move (onFrame)),
+          onCleanup (std::move (onCleanup))
+    {
+    }
     std::vector<std::string> pipeIds;
     FrameCallback onFrame;
     CleanupCallback onCleanup;
+    std::atomic<int> inFlight { 0 };
+    bool pendingCleanup = false;
 };
 
 std::unordered_map<int, Subscription> subscriptions;
@@ -17,29 +30,31 @@ auto subscribe (const std::vector<std::string> &pipeIds,
                 const FrameCallback &onFrame, const CleanupCallback &onCleanup)
     -> int
 {
-    std::lock_guard lock (mutex);
+    std::unique_lock lock (mutex);
     int subscriptionId = nextSubscriptionId++;
-    subscriptions[subscriptionId]
-        = Subscription{ pipeIds, onFrame, onCleanup };
+    subscriptions.try_emplace (subscriptionId, pipeIds, onFrame, onCleanup);
     return subscriptionId;
 }
 
 void unsubscribe (int subscriptionId)
 {
-    std::lock_guard lock (mutex);
-    // Make a copy to avoid iterator invalidation
-    auto subscriptionsCopy = subscriptions;
-    subscriptions.erase (subscriptionId);
-
-    for (auto &subscription : subscriptionsCopy)
+    CleanupCallback cleanup;
     {
-        if (subscription.first == subscriptionId)
+        std::unique_lock lock (mutex);
+        auto it = subscriptions.find (subscriptionId);
+        if (it != subscriptions.end ())
         {
-            if (subscription.second.onCleanup)
+            it->second.pendingCleanup = true;
+            if (it->second.inFlight.load (std::memory_order_acquire) == 0)
             {
-                subscription.second.onCleanup (subscriptionId);
+                cleanup = it->second.onCleanup;
+                subscriptions.erase (it);
             }
         }
+    }
+    if (cleanup)
+    {
+        cleanup (subscriptionId);
     }
 }
 
@@ -49,26 +64,53 @@ void publish (const std::string &pipeId, const FFmpeg::Frame &frame)
     {
         return;
     }
-    std::unordered_map<int, Subscription> subscriptionsCopy;
+    std::vector<std::pair<int, FrameCallback>> callbacks;
     {
-        std::lock_guard lock (mutex);
-        // Make a copy to speed up
-        subscriptionsCopy = subscriptions;
+        std::shared_lock lock (mutex);
+        for (auto &subscription : subscriptions)
+        {
+            if (subscription.second.pendingCleanup)
+            {
+                continue;
+            }
+            if (!subscription.second.onFrame)
+            {
+                continue;
+            }
+            const auto &ids = subscription.second.pipeIds;
+            if (std::find (ids.begin (), ids.end (), pipeId) != ids.end ())
+            {
+                subscription.second.inFlight.fetch_add (
+                    1, std::memory_order_acq_rel);
+                callbacks.emplace_back (subscription.first,
+                                        subscription.second.onFrame);
+            }
+        }
     }
 
-    for (auto &subscription : subscriptionsCopy)
+    for (const auto &callback : callbacks)
     {
-        for (const auto &pipeIdInSubscription : subscription.second.pipeIds)
+        callback.second (pipeId, callback.first, frame);
+        CleanupCallback cleanup;
         {
-            if (pipeId == pipeIdInSubscription)
+            std::unique_lock lock (mutex);
+            auto it = subscriptions.find (callback.first);
+            if (it != subscriptions.end ())
             {
-                int subscriptionId = subscription.first;
-                if (subscription.second.onFrame)
+                int remaining
+                    = it->second.inFlight.fetch_sub (1,
+                                                     std::memory_order_acq_rel)
+                      - 1;
+                if (remaining == 0 && it->second.pendingCleanup)
                 {
-                    subscription.second.onFrame (pipeId, subscriptionId,
-                                                 frame);
+                    cleanup = it->second.onCleanup;
+                    subscriptions.erase (it);
                 }
             }
+        }
+        if (cleanup)
+        {
+            cleanup (callback.first);
         }
     }
 }
