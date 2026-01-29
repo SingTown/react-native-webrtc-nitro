@@ -18,6 +18,7 @@
 
 #include <string>
 #include <optional>
+#include "ResizeMode.hpp"
 #include <memory>
 #include "HybridWebrtcViewSpec.hpp"
 #include <functional>
@@ -45,6 +46,7 @@ namespace margelo::nitro::webrtc::views {
   public:
     CachedProp<std::optional<std::string>> videoPipeId;
     CachedProp<std::optional<std::string>> audioPipeId;
+    CachedProp<std::optional<ResizeMode>> resizeMode;
     CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridWebrtcViewSpec>& /* ref */)>>> hybridRef;
 
   private:

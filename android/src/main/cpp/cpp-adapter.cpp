@@ -1,11 +1,14 @@
 #include "FFmpeg.hpp"
 #include "FramePipe.hpp"
 #include "WebrtcOnLoad.hpp"
+#include "ResizeMode.hpp"
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
 #include <chrono>
 #include <jni.h>
 #include <string>
+#include <algorithm>
+#include <optional>
 
 JavaVM *gJvm = nullptr;
 
@@ -66,10 +69,110 @@ Java_com_webrtc_HybridWebrtcView_subscribeAudio (JNIEnv *env, jobject,
     return subscribe ({ pipeIdStr }, callback);
 }
 
+using margelo::nitro::webrtc::ResizeMode;
+
+struct ResizeResult
+{
+    int winW;
+    int winH;
+    int outW;
+    int outH;
+};
+
+auto computeResize (const FFmpeg::Frame &raw, ANativeWindow *window,
+                    ResizeMode mode) -> std::optional<ResizeResult>
+{
+    if (raw->width <= 0 || raw->height <= 0) return std::nullopt;
+
+    int winW = ANativeWindow_getWidth (window);
+    int winH = ANativeWindow_getHeight (window);
+    if (winW <= 0 || winH <= 0) return std::nullopt;
+
+    float sx = static_cast<float>(winW) / raw->width;
+    float sy = static_cast<float>(winH) / raw->height;
+
+    float scale = 1.f;
+    bool stretch = false;
+
+    switch (mode) {
+        case ResizeMode::FILL:
+            stretch = true;
+            break;
+        case ResizeMode::COVER:
+            scale = std::max (sx, sy);
+            break;
+        case ResizeMode::CONTAIN:
+        default:
+            scale = std::min (sx, sy);
+            break;
+    }
+
+    int outW = stretch ? winW : static_cast<int>(raw->width * scale);
+    int outH = stretch ? winH : static_cast<int>(raw->height * scale);
+    if (outW <= 0 || outH <= 0) return std::nullopt;
+
+    return ResizeResult{ winW, winH, outW, outH };
+}
+
+void blitFrameCentered (const FFmpeg::Frame &frame, ANativeWindow *window,
+                        int winW, int winH)
+{
+    ANativeWindow_setBuffersGeometry (window, winW, winH,
+                                      WINDOW_FORMAT_RGBA_8888);
+
+    ANativeWindow_Buffer buffer;
+    if (ANativeWindow_lock (window, &buffer, nullptr) < 0)
+    {
+        return;
+    }
+
+    std::memset (buffer.bits, 0, buffer.stride * winH * 4);
+
+    int offsetX = (winW - frame->width) / 2;
+    int offsetY = (winH - frame->height) / 2;
+
+    for (int y = 0; y < frame->height; ++y) {
+        int dstY = y + offsetY;
+        if (dstY < 0 || dstY >= winH) continue;
+
+        uint8_t *src = frame->data[0] + y * frame->linesize[0];
+
+        int copyX = offsetX;
+        int srcX = 0;
+        int copyW = frame->width;
+
+        if (copyX < 0) {
+            srcX = -copyX;
+            copyW -= srcX;
+            copyX = 0;
+        }
+
+        if (copyX + copyW > winW) {
+            copyW = winW - copyX;
+        }
+
+        if (copyX + copyW > buffer.stride) {
+            copyW = buffer.stride - copyX;
+        }
+
+        if (copyW <= 0) continue;
+
+        uint8_t *dst =
+            static_cast<uint8_t*>(buffer.bits) +
+            dstY * buffer.stride * 4 +
+            copyX * 4;
+
+        std::memcpy (dst, src + srcX * 4, copyW * 4);
+    }
+
+    ANativeWindow_unlockAndPost (window);
+}
+
 extern "C" JNIEXPORT auto JNICALL
 Java_com_webrtc_HybridWebrtcView_subscribeVideo (JNIEnv *env, jobject,
                                                  jstring pipeId,
-                                                 jobject surface) -> jint
+                                                 jobject surface,
+                                                 jint resizeMode) -> jint
 {
     if (!surface)
     {
@@ -82,30 +185,19 @@ Java_com_webrtc_HybridWebrtcView_subscribeVideo (JNIEnv *env, jobject,
     }
 
     auto scaler = std::make_shared<FFmpeg::Scaler> ();
+    auto mode = static_cast<ResizeMode>(resizeMode);
     FrameCallback callback
-        = [window, scaler] (const std::string &, int, const FFmpeg::Frame &raw)
+        = [window, scaler, mode] (const std::string &, int, const FFmpeg::Frame &raw)
     {
+        auto resize = computeResize (raw, window, mode);
+        if (!resize.has_value ()) return;
+
         FFmpeg::Frame frame
-            = scaler->scale (raw, AV_PIX_FMT_RGBA, raw->width, raw->height);
+            = scaler->scale (raw, AV_PIX_FMT_RGBA, resize->outW, resize->outH);
 
-        ANativeWindow_setBuffersGeometry (window, frame->width, frame->height,
-                                          WINDOW_FORMAT_RGBA_8888);
+        if (frame->width <= 0 || frame->height <= 0) return;
 
-        ANativeWindow_Buffer buffer;
-        if (ANativeWindow_lock (window, &buffer, nullptr) < 0)
-        {
-            return;
-        }
-
-        auto *dst = static_cast<uint8_t *> (buffer.bits);
-        for (int y = 0; y < frame->height; ++y)
-        {
-            uint8_t *srcRow = frame->data[0] + y * frame->linesize[0];
-            uint8_t *dstRow = dst + y * buffer.stride * 4;
-            memcpy (dstRow, srcRow, frame->width * 4);
-        }
-
-        ANativeWindow_unlockAndPost (window);
+        blitFrameCentered (frame, window, resize->winW, resize->winH);
     };
     CleanupCallback cleanup
         = [window] (int) { ANativeWindow_release (window); };

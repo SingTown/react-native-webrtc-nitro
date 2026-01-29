@@ -10,6 +10,7 @@ import androidx.annotation.Keep
 import com.facebook.proguard.annotations.DoNotStrip
 import com.facebook.react.uimanager.ThemedReactContext
 import com.margelo.nitro.webrtc.HybridWebrtcViewSpec
+import com.margelo.nitro.webrtc.ResizeMode
 
 @Keep
 @DoNotStrip
@@ -33,10 +34,11 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
 
     external fun unsubscribe(subscriptionId: Int)
     external fun subscribeAudio(pipeId: String, track: AudioTrack): Int
-    external fun subscribeVideo(pipeId: String, surface: Surface): Int
+    external fun subscribeVideo(pipeId: String, surface: Surface, resizeMode: Int): Int
 
     private var _audioPipeId: String? = null
     private var _videoPipeId: String? = null
+    private var _resizeMode: ResizeMode = ResizeMode.CONTAIN
     private var videoSubscriptionId: Int = -1
     private var audioSubscriptionId: Int = -1
 
@@ -86,7 +88,7 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
         if (newVideoPipeId.isNullOrEmpty()) {
             return;
         }
-        this.videoSubscriptionId = subscribeVideo(newVideoPipeId, surface)
+        this.videoSubscriptionId = subscribeVideo(newVideoPipeId, surface, _resizeMode.value)
         this._videoPipeId = newVideoPipeId
     }
 
@@ -94,5 +96,11 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
         get() = _videoPipeId
         set(value) {
             updateVideoPipeId(value, view.holder.surface)
+        }
+
+    override var resizeMode: ResizeMode?
+        get() = _resizeMode
+        set(value) {
+            _resizeMode = value ?: ResizeMode.CONTAIN
         }
 }

@@ -44,6 +44,10 @@ void JHybridWebrtcViewStateUpdater::updateViewProps(jni::alias_ref<jni::JClass> 
     view->setAudioPipeId(props.audioPipeId.value);
     // TODO: Set isDirty = false
   }
+  if (props.resizeMode.isDirty) {
+    view->setResizeMode(props.resizeMode.value);
+    // TODO: Set isDirty = false
+  }
 
   // Update hybridRef if it changed
   if (props.hybridRef.isDirty) {

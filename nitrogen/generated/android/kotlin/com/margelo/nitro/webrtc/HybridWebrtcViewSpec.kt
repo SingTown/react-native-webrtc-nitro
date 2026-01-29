@@ -53,6 +53,12 @@ abstract class HybridWebrtcViewSpec: HybridView() {
   @set:DoNotStrip
   @set:Keep
   abstract var audioPipeId: String?
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
+  abstract var resizeMode: ResizeMode?
 
   // Methods
   

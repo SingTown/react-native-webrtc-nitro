@@ -161,6 +161,23 @@ open class HybridWebrtcViewSpec_cxx {
       }()
     }
   }
+  
+  public final var resizeMode: bridge.std__optional_ResizeMode_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_ResizeMode_ in
+        if let __unwrappedValue = self.__implementation.resizeMode {
+          return bridge.create_std__optional_ResizeMode_(__unwrappedValue)
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.resizeMode = newValue.value
+    }
+  }
 
   // Methods
   public final func getView() -> UnsafeMutableRawPointer {
