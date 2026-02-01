@@ -17,7 +17,7 @@
     "@react-native/new-app-screen": "0.83.1",
     "@react-navigation/native-stack": "^7.9.0",
     "path-browserify": "^1.0.1",
-    "react": "19.2.3",
+    "react": "19.2.4",
     "react-native-fs": "^2.20.0",
     "react-native-nitro-modules": "0.32.0",
     "react-native-safe-area-context": "^5.6.2",
