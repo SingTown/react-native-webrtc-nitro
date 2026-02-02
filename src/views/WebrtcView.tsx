@@ -1,6 +1,6 @@
 import { getHostComponent } from 'react-native-nitro-modules'
 import WebrtcViewConfig from '../../nitrogen/generated/shared/json/WebrtcViewConfig.json'
-import { type WebrtcViewProps } from './WebrtcView.nitro'
+import { type ResizeMode, type WebrtcViewProps } from './WebrtcView.nitro'
 import { type WebrtcViewMethods } from './WebrtcView.nitro'
 import { MediaStream } from '../specs/MediaStream.nitro'
 import React from 'react'
@@ -14,9 +14,10 @@ const WebrtcViewNitro = getHostComponent<WebrtcViewProps, WebrtcViewMethods>(
 export interface WebrtcViewComponentProps {
   stream: MediaStream | null
   style?: StyleProp<ViewStyle>
+  resizeMode?: ResizeMode
 }
 
-export function WebrtcView({ stream, style }: WebrtcViewComponentProps) {
+export function WebrtcView({ stream, style, resizeMode }: WebrtcViewComponentProps) {
   const videoPipeId = stream?.getVideoTracks()?.[0]?._dstPipeId
   const audioPipeId = stream?.getAudioTracks()?.[0]?._dstPipeId
   return (
@@ -24,6 +25,7 @@ export function WebrtcView({ stream, style }: WebrtcViewComponentProps) {
       audioPipeId={audioPipeId}
       videoPipeId={videoPipeId}
       style={style}
+      resizeMode={resizeMode}
     />
   )
 }

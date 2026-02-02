@@ -22,6 +22,8 @@ namespace margelo::nitro::webrtc { struct PermissionDescriptor; }
 namespace margelo::nitro::webrtc { enum class PermissionName; }
 // Forward declaration of `PermissionState` to properly resolve imports.
 namespace margelo::nitro::webrtc { enum class PermissionState; }
+// Forward declaration of `ResizeMode` to properly resolve imports.
+namespace margelo::nitro::webrtc { enum class ResizeMode; }
 
 // Include C++ defined types
 #include "HybridCameraSpec.hpp"
@@ -31,6 +33,7 @@ namespace margelo::nitro::webrtc { enum class PermissionState; }
 #include "PermissionDescriptor.hpp"
 #include "PermissionName.hpp"
 #include "PermissionState.hpp"
+#include "ResizeMode.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/Result.hpp>
 #include <exception>

@@ -1,21 +1,24 @@
 package com.webrtc
 
+import android.graphics.Matrix
+import android.graphics.SurfaceTexture
 import android.view.Surface
-import android.view.SurfaceView
-import android.view.SurfaceHolder
+import android.view.TextureView
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
+import android.view.ViewOutlineProvider
 import androidx.annotation.Keep
 import com.facebook.proguard.annotations.DoNotStrip
 import com.facebook.react.uimanager.ThemedReactContext
 import com.margelo.nitro.webrtc.HybridWebrtcViewSpec
+import com.margelo.nitro.webrtc.ResizeMode
 
 @Keep
 @DoNotStrip
 class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec() {
     // View
-    override val view: SurfaceView = SurfaceView(context)
+    override val view: TextureView = TextureView(context)
     companion object {
         private var audioTrack = AudioTrack(
             AudioManager.STREAM_MUSIC,
@@ -37,8 +40,12 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
 
     private var _audioPipeId: String? = null
     private var _videoPipeId: String? = null
+    private var _resizeMode: ResizeMode = ResizeMode.CONTAIN
     private var videoSubscriptionId: Int = -1
     private var audioSubscriptionId: Int = -1
+    private var videoWidth: Int = 0
+    private var videoHeight: Int = 0
+    private var videoSurface: Surface? = null
 
     override var audioPipeId: String?
         get() = _audioPipeId
@@ -56,30 +63,48 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
 
 
     init {
-        view.holder.addCallback(object : SurfaceHolder.Callback {
-            override fun surfaceCreated(holder: SurfaceHolder) {
-                updateVideoPipeId(_videoPipeId, holder.surface)
-            }
-
-            override fun surfaceChanged(
-                holder: SurfaceHolder,
-                format: Int,
+        view.outlineProvider = ViewOutlineProvider.BOUNDS
+        view.clipToOutline = true
+        view.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+            override fun onSurfaceTextureAvailable(
+                surfaceTexture: SurfaceTexture,
                 width: Int,
                 height: Int
             ) {
-                updateVideoPipeId(_videoPipeId, holder.surface)
+                videoSurface = Surface(surfaceTexture)
+                updateVideoPipeId(_videoPipeId, videoSurface)
+                applyTransform()
             }
 
-            override fun surfaceDestroyed(holder: SurfaceHolder) {
-                updateVideoPipeId(_videoPipeId, null)
+            override fun onSurfaceTextureSizeChanged(
+                surfaceTexture: SurfaceTexture,
+                width: Int,
+                height: Int
+            ) {
+                applyTransform()
             }
-        })
+
+            override fun onSurfaceTextureDestroyed(surfaceTexture: SurfaceTexture): Boolean {
+                updateVideoPipeId(_videoPipeId, null)
+                videoSurface?.release()
+                videoSurface = null
+                return true
+            }
+
+            override fun onSurfaceTextureUpdated(surfaceTexture: SurfaceTexture) {
+            }
+        }
+
+        view.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            applyTransform()
+        }
     }
 
     private fun updateVideoPipeId(newVideoPipeId: String?, surface: Surface?) {
         if (this.videoSubscriptionId > 0) {
             this.unsubscribe(this.videoSubscriptionId)
         }
+        this._videoPipeId = newVideoPipeId
         if (surface == null) {
             return;
         }
@@ -87,12 +112,80 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
             return;
         }
         this.videoSubscriptionId = subscribeVideo(newVideoPipeId, surface)
-        this._videoPipeId = newVideoPipeId
     }
 
     override var videoPipeId: String?
         get() = _videoPipeId
         set(value) {
-            updateVideoPipeId(value, view.holder.surface)
+            updateVideoPipeId(value, videoSurface)
         }
+
+    override var resizeMode: ResizeMode?
+        get() = _resizeMode
+        set(value) {
+            _resizeMode = value ?: ResizeMode.CONTAIN
+            applyTransform()
+        }
+
+    @Keep
+    @DoNotStrip
+    fun onFrameSizeChanged(width: Int, height: Int) {
+        if (width <= 0 || height <= 0) {
+            return
+        }
+        view.post {
+            if (videoWidth == width && videoHeight == height) {
+                return@post
+            }
+            videoWidth = width
+            videoHeight = height
+            if (videoSurface != null) {
+                updateVideoPipeId(_videoPipeId, videoSurface)
+            }
+            applyTransform()
+        }
+    }
+
+    private fun applyTransform() {
+        val w = view.width
+        val h = view.height
+        if (w <= 0 || h <= 0 || videoWidth <= 0 || videoHeight <= 0) {
+            return
+        }
+
+        val sx = w.toFloat() / videoWidth.toFloat()
+        val sy = h.toFloat() / videoHeight.toFloat()
+
+        val scaleX: Float
+        val scaleY: Float
+        when (_resizeMode) {
+            ResizeMode.FILL -> {
+                scaleX = 1f
+                scaleY = 1f
+            }
+            ResizeMode.CONTAIN -> {
+                if (sx < sy) {
+                    scaleX = 1f
+                    scaleY = sx / sy
+                } else {
+                    scaleX = sy / sx
+                    scaleY = 1f
+                }
+            }
+            ResizeMode.COVER -> {
+                if (sx < sy) {
+                    scaleX = sy / sx
+                    scaleY = 1f
+                } else {
+                    scaleX = 1f
+                    scaleY = sx / sy
+                }
+            }
+        }
+
+        val matrix = Matrix()
+        matrix.setScale(scaleX, scaleY, w / 2f, h / 2f)
+        view.setTransform(matrix)
+        view.invalidate()
+    }
 }

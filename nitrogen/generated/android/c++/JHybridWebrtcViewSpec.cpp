@@ -7,10 +7,13 @@
 
 #include "JHybridWebrtcViewSpec.hpp"
 
-
+// Forward declaration of `ResizeMode` to properly resolve imports.
+namespace margelo::nitro::webrtc { enum class ResizeMode; }
 
 #include <string>
 #include <optional>
+#include "ResizeMode.hpp"
+#include "JResizeMode.hpp"
 
 namespace margelo::nitro::webrtc {
 
@@ -58,6 +61,15 @@ namespace margelo::nitro::webrtc {
   void JHybridWebrtcViewSpec::setAudioPipeId(const std::optional<std::string>& audioPipeId) {
     static const auto method = javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* audioPipeId */)>("setAudioPipeId");
     method(_javaPart, audioPipeId.has_value() ? jni::make_jstring(audioPipeId.value()) : nullptr);
+  }
+  std::optional<ResizeMode> JHybridWebrtcViewSpec::getResizeMode() {
+    static const auto method = javaClassStatic()->getMethod<jni::local_ref<JResizeMode>()>("getResizeMode");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional(__result->toCpp()) : std::nullopt;
+  }
+  void JHybridWebrtcViewSpec::setResizeMode(std::optional<ResizeMode> resizeMode) {
+    static const auto method = javaClassStatic()->getMethod<void(jni::alias_ref<JResizeMode> /* resizeMode */)>("setResizeMode");
+    method(_javaPart, resizeMode.has_value() ? JResizeMode::fromCpp(resizeMode.value()) : nullptr);
   }
 
   // Methods
