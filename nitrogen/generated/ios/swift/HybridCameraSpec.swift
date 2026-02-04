@@ -15,6 +15,7 @@ public protocol HybridCameraSpec_protocol: HybridObject {
 
   // Methods
   func open(pipeId: String) throws -> Promise<Void>
+  func switchCamera(facingMode: FacingMode) throws -> Promise<Void>
 }
 
 public extension HybridCameraSpec_protocol {

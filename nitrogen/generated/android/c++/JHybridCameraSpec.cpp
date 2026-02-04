@@ -7,12 +7,15 @@
 
 #include "JHybridCameraSpec.hpp"
 
-
+// Forward declaration of `FacingMode` to properly resolve imports.
+namespace margelo::nitro::webrtc { enum class FacingMode; }
 
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/JPromise.hpp>
 #include <NitroModules/JUnit.hpp>
 #include <string>
+#include "FacingMode.hpp"
+#include "JFacingMode.hpp"
 
 namespace margelo::nitro::webrtc {
 
@@ -49,6 +52,21 @@ namespace margelo::nitro::webrtc {
   std::shared_ptr<Promise<void>> JHybridCameraSpec::open(const std::string& pipeId) {
     static const auto method = javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* pipeId */)>("open");
     auto __result = method(_javaPart, jni::make_jstring(pipeId));
+    return [&]() {
+      auto __promise = Promise<void>::create();
+      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& /* unit */) {
+        __promise->resolve();
+      });
+      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
+        jni::JniException __jniError(__throwable);
+        __promise->reject(std::make_exception_ptr(__jniError));
+      });
+      return __promise;
+    }();
+  }
+  std::shared_ptr<Promise<void>> JHybridCameraSpec::switchCamera(FacingMode facingMode) {
+    static const auto method = javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<JFacingMode> /* facingMode */)>("switchCamera");
+    auto __result = method(_javaPart, JFacingMode::fromCpp(facingMode));
     return [&]() {
       auto __promise = Promise<void>::create();
       __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& /* unit */) {

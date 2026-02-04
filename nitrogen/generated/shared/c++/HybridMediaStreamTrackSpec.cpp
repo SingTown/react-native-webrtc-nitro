@@ -22,6 +22,7 @@ namespace margelo::nitro::webrtc {
       prototype.registerHybridGetter("_srcPipeId", &HybridMediaStreamTrackSpec::get_srcPipeId);
       prototype.registerHybridGetter("_dstPipeId", &HybridMediaStreamTrackSpec::get_dstPipeId);
       prototype.registerHybridMethod("stop", &HybridMediaStreamTrackSpec::stop);
+      prototype.registerHybridMethod("switchCamera", &HybridMediaStreamTrackSpec::switchCamera);
     });
   }
 

@@ -5,6 +5,7 @@ import androidx.annotation.Keep
 import android.Manifest
 import android.content.pm.PackageManager
 import android.hardware.camera2.CameraDevice
+import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CaptureRequest
@@ -13,7 +14,11 @@ import android.media.ImageReader
 import android.graphics.ImageFormat
 import android.os.Handler
 import android.os.HandlerThread
+import android.view.Surface
+import android.view.WindowManager
+import android.util.Log
 import com.facebook.proguard.annotations.DoNotStrip
+import com.margelo.nitro.webrtc.FacingMode
 import com.margelo.nitro.webrtc.HybridCameraSpec
 import com.margelo.nitro.core.Promise
 import com.margelo.nitro.NitroModules
@@ -29,8 +34,11 @@ object Camera {
     private var imageReader =
         ImageReader.newInstance(DEFAULT_WIDTH, DEFAULT_HEIGHT, ImageFormat.YUV_420_888, 2)
     private val pipeIds = mutableSetOf<String>()
+    private var facingMode: FacingMode = FacingMode.USER
+    private var sensorOrientation: Int = 0
+    private var isFrontFacing: Boolean = true
 
-    external fun publishVideo(pipeIds: Array<String>, image: Image)
+    external fun publishVideo(pipeIds: Array<String>, image: Image, rotation: Int, mirror: Boolean)
 
     private val cameraStateCallback = object : CameraDevice.StateCallback() {
         override fun onOpened(camera: CameraDevice) {
@@ -107,6 +115,16 @@ object Camera {
         }
     }
 
+    @Synchronized
+    fun switchCamera(facingMode: FacingMode) {
+        if (facingMode == this.facingMode) return
+        this.facingMode = facingMode
+        if (pipeIds.isNotEmpty()) {
+            stopCamera()
+            startCamera()
+        }
+    }
+
     private fun startCamera() {
         val context = NitroModules.applicationContext
             ?: throw RuntimeException("ReactApplicationContext is not available")
@@ -117,10 +135,38 @@ object Camera {
         backgroundThread = HandlerThread("CameraBackground")
         backgroundThread.start()
 
+        val cameraId = cameraManager.cameraIdList.firstOrNull { id ->
+            try {
+                val characteristics = cameraManager.getCameraCharacteristics(id)
+                val facing = characteristics.get(CameraCharacteristics.LENS_FACING)
+                if (facingMode == FacingMode.USER) {
+                    facing == CameraCharacteristics.LENS_FACING_FRONT
+                } else {
+                    facing == CameraCharacteristics.LENS_FACING_BACK
+                }
+            } catch (e: Exception) {
+                false
+            }
+        } ?: cameraManager.cameraIdList.firstOrNull()
+            ?: throw RuntimeException("Camera not exist!")
+
+        try {
+            val characteristics = cameraManager.getCameraCharacteristics(cameraId)
+            sensorOrientation =
+                characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 0
+            isFrontFacing =
+                characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT
+        } catch (e: Exception) {
+            sensorOrientation = 0
+            isFrontFacing = facingMode == FacingMode.USER
+        }
+
         val onImageAvailableListener = ImageReader.OnImageAvailableListener { reader ->
             val image = reader.acquireNextImage()
             image.use {
-                publishVideo(pipeIds.toTypedArray(), it)
+                val rotation = getFrameRotationDegrees(context)
+                val mirror = isFrontFacing
+                publishVideo(pipeIds.toTypedArray(), it, rotation, mirror)
             }
         }
         imageReader.setOnImageAvailableListener(
@@ -128,8 +174,6 @@ object Camera {
             Handler(backgroundThread.looper)
         )
 
-        val cameraId = cameraManager.cameraIdList.firstOrNull()
-            ?: throw RuntimeException("Camera not exist!")
         cameraManager.openCamera(cameraId, cameraStateCallback, Handler(backgroundThread.looper))
 
     }
@@ -143,6 +187,23 @@ object Camera {
         backgroundThread.quitSafely()
         backgroundThread.join()
     }
+
+    private fun getFrameRotationDegrees(context: Context): Int {
+        val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
+        val rotation = windowManager?.defaultDisplay?.rotation ?: Surface.ROTATION_0
+        val displayDegrees = when (rotation) {
+            Surface.ROTATION_90 -> 90
+            Surface.ROTATION_180 -> 180
+            Surface.ROTATION_270 -> 270
+            else -> 0
+        }
+        return if (isFrontFacing) {
+            (sensorOrientation + displayDegrees) % 360
+        } else {
+            (sensorOrientation - displayDegrees + 360) % 360
+        }
+    }
+
 }
 
 
@@ -150,6 +211,12 @@ object Camera {
 @DoNotStrip
 class HybridCamera : HybridCameraSpec() {
     private var pipeId: String = ""
+
+    override fun switchCamera(facingMode: FacingMode): Promise<Unit> {
+        return Promise.async {
+            Camera.switchCamera(facingMode)
+        }
+    }
 
     override fun open(pipeId: String): Promise<Unit> {
         this.pipeId = pipeId

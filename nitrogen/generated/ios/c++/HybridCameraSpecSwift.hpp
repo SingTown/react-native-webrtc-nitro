@@ -12,10 +12,12 @@
 // Forward declaration of `HybridCameraSpec_cxx` to properly resolve imports.
 namespace Webrtc { class HybridCameraSpec_cxx; }
 
-
+// Forward declaration of `FacingMode` to properly resolve imports.
+namespace margelo::nitro::webrtc { enum class FacingMode; }
 
 #include <NitroModules/Promise.hpp>
 #include <string>
+#include "FacingMode.hpp"
 
 #include "Webrtc-Swift-Cxx-Umbrella.hpp"
 
@@ -63,6 +65,14 @@ namespace margelo::nitro::webrtc {
     // Methods
     inline std::shared_ptr<Promise<void>> open(const std::string& pipeId) override {
       auto __result = _swiftPart.open(pipeId);
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<void>> switchCamera(FacingMode facingMode) override {
+      auto __result = _swiftPart.switchCamera(static_cast<int>(facingMode));
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

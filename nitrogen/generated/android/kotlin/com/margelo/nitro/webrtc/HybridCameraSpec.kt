@@ -49,6 +49,10 @@ abstract class HybridCameraSpec: HybridObject() {
   @DoNotStrip
   @Keep
   abstract fun open(pipeId: String): Promise<Unit>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun switchCamera(facingMode: FacingMode): Promise<Unit>
 
   private external fun initHybrid(): HybridData
 
