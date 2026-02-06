@@ -13,6 +13,7 @@ public protocol HybridWebrtcViewSpec_protocol: HybridObject, HybridView {
   // Properties
   var videoPipeId: String? { get set }
   var audioPipeId: String? { get set }
+  var resizeMode: ResizeMode? { get set }
 
   // Methods
   

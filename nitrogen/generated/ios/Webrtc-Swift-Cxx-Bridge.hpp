@@ -18,6 +18,8 @@ namespace margelo::nitro::webrtc { class HybridPermissionsSpec; }
 namespace margelo::nitro::webrtc { class HybridWebrtcViewSpec; }
 // Forward declaration of `PermissionState` to properly resolve imports.
 namespace margelo::nitro::webrtc { enum class PermissionState; }
+// Forward declaration of `ResizeMode` to properly resolve imports.
+namespace margelo::nitro::webrtc { enum class ResizeMode; }
 
 // Forward declarations of Swift defined types
 // Forward declaration of `HybridCameraSpec_cxx` to properly resolve imports.
@@ -35,6 +37,7 @@ namespace Webrtc { class HybridWebrtcViewSpec_cxx; }
 #include "HybridPermissionsSpec.hpp"
 #include "HybridWebrtcViewSpec.hpp"
 #include "PermissionState.hpp"
+#include "ResizeMode.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/PromiseHolder.hpp>
 #include <NitroModules/Result.hpp>
@@ -206,6 +209,21 @@ namespace margelo::nitro::webrtc::bridge::swift {
     return optional.has_value();
   }
   inline std::string get_std__optional_std__string_(const std::optional<std::string>& optional) noexcept {
+    return *optional;
+  }
+  
+  // pragma MARK: std::optional<ResizeMode>
+  /**
+   * Specialized version of `std::optional<ResizeMode>`.
+   */
+  using std__optional_ResizeMode_ = std::optional<ResizeMode>;
+  inline std::optional<ResizeMode> create_std__optional_ResizeMode_(const ResizeMode& value) noexcept {
+    return std::optional<ResizeMode>(value);
+  }
+  inline bool has_value_std__optional_ResizeMode_(const std::optional<ResizeMode>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline ResizeMode get_std__optional_ResizeMode_(const std::optional<ResizeMode>& optional) noexcept {
     return *optional;
   }
   

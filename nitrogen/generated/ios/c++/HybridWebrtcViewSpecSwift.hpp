@@ -12,10 +12,12 @@
 // Forward declaration of `HybridWebrtcViewSpec_cxx` to properly resolve imports.
 namespace Webrtc { class HybridWebrtcViewSpec_cxx; }
 
-
+// Forward declaration of `ResizeMode` to properly resolve imports.
+namespace margelo::nitro::webrtc { enum class ResizeMode; }
 
 #include <string>
 #include <optional>
+#include "ResizeMode.hpp"
 
 #include "Webrtc-Swift-Cxx-Umbrella.hpp"
 
@@ -70,6 +72,13 @@ namespace margelo::nitro::webrtc {
     }
     inline void setAudioPipeId(const std::optional<std::string>& audioPipeId) noexcept override {
       _swiftPart.setAudioPipeId(audioPipeId);
+    }
+    inline std::optional<ResizeMode> getResizeMode() noexcept override {
+      auto __result = _swiftPart.getResizeMode();
+      return __result;
+    }
+    inline void setResizeMode(std::optional<ResizeMode> resizeMode) noexcept override {
+      _swiftPart.setResizeMode(resizeMode);
     }
 
   public:

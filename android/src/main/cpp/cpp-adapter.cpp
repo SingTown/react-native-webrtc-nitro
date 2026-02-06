@@ -67,7 +67,7 @@ Java_com_webrtc_HybridWebrtcView_subscribeAudio (JNIEnv *env, jobject,
 }
 
 extern "C" JNIEXPORT auto JNICALL
-Java_com_webrtc_HybridWebrtcView_subscribeVideo (JNIEnv *env, jobject,
+Java_com_webrtc_HybridWebrtcView_subscribeVideo (JNIEnv *env, jobject thiz,
                                                  jstring pipeId,
                                                  jobject surface) -> jint
 {
@@ -82,9 +82,32 @@ Java_com_webrtc_HybridWebrtcView_subscribeVideo (JNIEnv *env, jobject,
     }
 
     auto scaler = std::make_shared<FFmpeg::Scaler> ();
+    jobject viewGlobal = env->NewGlobalRef (thiz);
+    jclass viewClass = env->GetObjectClass (thiz);
+    jmethodID onFrameSizeChanged = env->GetMethodID (
+        viewClass, "onFrameSizeChanged", "(II)V");
+    env->DeleteLocalRef (viewClass);
+
+    auto lastW = std::make_shared<int> (0);
+    auto lastH = std::make_shared<int> (0);
+
     FrameCallback callback
-        = [window, scaler] (const std::string &, int, const FFmpeg::Frame &raw)
+        = [window, scaler, viewGlobal, onFrameSizeChanged, lastW, lastH]
+            (const std::string &, int, const FFmpeg::Frame &raw)
     {
+        if (raw->width != *lastW || raw->height != *lastH)
+        {
+            *lastW = raw->width;
+            *lastH = raw->height;
+            if (viewGlobal && onFrameSizeChanged)
+            {
+                JNIEnv *env;
+                gJvm->AttachCurrentThread (&env, nullptr);
+                env->CallVoidMethod (viewGlobal, onFrameSizeChanged, raw->width,
+                                     raw->height);
+            }
+        }
+
         FFmpeg::Frame frame
             = scaler->scale (raw, AV_PIX_FMT_RGBA, raw->width, raw->height);
 
@@ -108,7 +131,16 @@ Java_com_webrtc_HybridWebrtcView_subscribeVideo (JNIEnv *env, jobject,
         ANativeWindow_unlockAndPost (window);
     };
     CleanupCallback cleanup
-        = [window] (int) { ANativeWindow_release (window); };
+        = [window, viewGlobal] (int)
+    {
+        ANativeWindow_release (window);
+        if (viewGlobal)
+        {
+            JNIEnv *env;
+            gJvm->AttachCurrentThread (&env, nullptr);
+            env->DeleteGlobalRef (viewGlobal);
+        }
+    };
     std::string pipeIdStr (env->GetStringUTFChars (pipeId, nullptr));
     return subscribe ({ pipeIdStr }, callback, cleanup);
 }

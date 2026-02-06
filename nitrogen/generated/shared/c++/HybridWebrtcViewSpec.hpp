@@ -13,10 +13,12 @@
 #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
 #endif
 
-
+// Forward declaration of `ResizeMode` to properly resolve imports.
+namespace margelo::nitro::webrtc { enum class ResizeMode; }
 
 #include <string>
 #include <optional>
+#include "ResizeMode.hpp"
 
 namespace margelo::nitro::webrtc {
 
@@ -49,6 +51,8 @@ namespace margelo::nitro::webrtc {
       virtual void setVideoPipeId(const std::optional<std::string>& videoPipeId) = 0;
       virtual std::optional<std::string> getAudioPipeId() = 0;
       virtual void setAudioPipeId(const std::optional<std::string>& audioPipeId) = 0;
+      virtual std::optional<ResizeMode> getResizeMode() = 0;
+      virtual void setResizeMode(std::optional<ResizeMode> resizeMode) = 0;
 
     public:
       // Methods

@@ -11,21 +11,38 @@ import UIKit
 
 class WebrtcDisplayView: UIView {
     var displayLayer: AVSampleBufferDisplayLayer = AVSampleBufferDisplayLayer()
-    
+
+    var resizeMode: ResizeMode? = .contain {
+        didSet {
+            updateVideoGravity()
+        }
+    }
+
     override init(frame: CGRect) {
         super.init(frame: frame)
-        displayLayer.videoGravity = .resizeAspectFill
+        updateVideoGravity()
         displayLayer.frame = bounds
         layer.addSublayer(displayLayer)
     }
-    
+
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        displayLayer.videoGravity = .resizeAspectFill
+        updateVideoGravity()
         displayLayer.frame = bounds
         layer.addSublayer(displayLayer)
     }
-    
+
+    private func updateVideoGravity() {
+        switch resizeMode {
+        case .contain, .none:
+            displayLayer.videoGravity = AVLayerVideoGravity.resizeAspect
+        case .cover:
+            displayLayer.videoGravity = AVLayerVideoGravity.resizeAspectFill
+        case .fill:
+            displayLayer.videoGravity = AVLayerVideoGravity.resize
+        }
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         displayLayer.frame = bounds
@@ -84,7 +101,15 @@ class HybridWebrtcView: HybridWebrtcViewSpec {
     
     var videoSubscriptionId: Int32 = -1
     fileprivate static let lock = NSLock()
-    
+
+    var resizeMode: ResizeMode? {
+        didSet {
+            if let displayView = view as? WebrtcDisplayView {
+                displayView.resizeMode = resizeMode
+            }
+        }
+    }
+
     var audioPipeId: String? {
         didSet {
             Self.lock.lock()
