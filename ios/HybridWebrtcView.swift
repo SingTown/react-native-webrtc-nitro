@@ -48,7 +48,7 @@ class SpeakerManager {
         Self.instanceNumber += 1
         
         try Self.sharedAudioSession.setCategory(
-            .playAndRecord, mode: .videoChat, options: [.defaultToSpeaker])
+            .playAndRecord, mode: .videoChat, options: [.defaultToSpeaker, .allowBluetooth])
         try Self.sharedAudioSession.setActive(true)
         
         Self.sharedAudioEngine.attach(audioPlayer)
