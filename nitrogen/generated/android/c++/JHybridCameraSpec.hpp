@@ -55,6 +55,7 @@ namespace margelo::nitro::webrtc {
   public:
     // Methods
     std::shared_ptr<Promise<void>> open(const std::string& pipeId) override;
+    std::shared_ptr<Promise<void>> switchCamera(FacingMode facingMode) override;
 
   private:
     friend HybridBase;

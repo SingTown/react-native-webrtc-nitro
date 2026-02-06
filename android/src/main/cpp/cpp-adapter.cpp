@@ -3,11 +3,203 @@
 #include "WebrtcOnLoad.hpp"
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
-#include <chrono>
+#include <cstring>
 #include <jni.h>
 #include <string>
+#include <cstdint>
 
 JavaVM *gJvm = nullptr;
+
+struct VideoTransform
+{
+    static auto normalizeRotation (int rotation) -> int
+    {
+        int normalized = rotation % 360;
+        if (normalized < 0)
+        {
+            normalized += 360;
+        }
+        switch (normalized)
+        {
+            case 0:
+            case 90:
+            case 180:
+            case 270:
+                return normalized;
+            default:
+                return 0;
+        }
+    }
+
+    static void copySample (uint8_t *dst, const uint8_t *src,
+                            int bytesPerSample)
+    {
+        if (bytesPerSample == 1)
+        {
+            *dst = *src;
+        }
+        else
+        {
+            dst[0] = src[0];
+            dst[1] = src[1];
+        }
+    }
+
+    static void rotateMirrorPlane (const uint8_t *src, int srcStride,
+                                   uint8_t *dst, int dstStride, int srcW,
+                                   int srcH, int rotation, bool mirror,
+                                   int bytesPerSample)
+    {
+        int dstW = (rotation == 90 || rotation == 270) ? srcH : srcW;
+        int dstH = (rotation == 90 || rotation == 270) ? srcW : srcH;
+
+        if (rotation == 0 && !mirror)
+        {
+            const int rowBytes = srcW * bytesPerSample;
+            for (int y = 0; y < srcH; ++y)
+            {
+                memcpy (dst + y * dstStride, src + y * srcStride, rowBytes);
+            }
+            return;
+        }
+
+        for (int y = 0; y < dstH; ++y)
+        {
+            uint8_t *dstRow = dst + y * dstStride;
+            for (int x = 0; x < dstW; ++x)
+            {
+                int xTransformed = mirror ? (dstW - 1 - x) : x;
+                int srcX = 0;
+                int srcY = 0;
+                switch (rotation)
+                {
+                    case 0:
+                        srcX = xTransformed;
+                        srcY = y;
+                        break;
+                    case 90:
+                        srcX = y;
+                        srcY = srcH - 1 - xTransformed;
+                        break;
+                    case 180:
+                        srcX = srcW - 1 - xTransformed;
+                        srcY = srcH - 1 - y;
+                        break;
+                    case 270:
+                    default:
+                        srcX = srcW - 1 - y;
+                        srcY = xTransformed;
+                        break;
+                }
+                const uint8_t *srcSample
+                    = src + srcY * srcStride + srcX * bytesPerSample;
+                copySample (dstRow + x * bytesPerSample, srcSample,
+                            bytesPerSample);
+            }
+        }
+    }
+
+    static void rotateMirrorNV12 (const FFmpeg::Frame &src,
+                                  FFmpeg::Frame &dst, int rotation,
+                                  bool mirror)
+    {
+        rotateMirrorPlane (src->data[0], src->linesize[0], dst->data[0],
+                           dst->linesize[0], src->width, src->height, rotation,
+                           mirror, 1);
+        rotateMirrorPlane (src->data[1], src->linesize[1], dst->data[1],
+                           dst->linesize[1], src->width / 2, src->height / 2,
+                           rotation, mirror, 2);
+    }
+
+    static void blitNV12 (const FFmpeg::Frame &src, FFmpeg::Frame &dst,
+                          int dstX, int dstY)
+    {
+        const int srcW = src->width;
+        const int srcH = src->height;
+        for (int y = 0; y < srcH; ++y)
+        {
+            const uint8_t *srcRow = src->data[0] + y * src->linesize[0];
+            uint8_t *dstRow
+                = dst->data[0] + (dstY + y) * dst->linesize[0] + dstX;
+            memcpy (dstRow, srcRow, srcW);
+        }
+
+        const int srcUVH = srcH / 2;
+        const int srcUVBytes = srcW;
+        const int dstUVX = dstX / 2;
+        const int dstUVY = dstY / 2;
+        for (int y = 0; y < srcUVH; ++y)
+        {
+            const uint8_t *srcRow = src->data[1] + y * src->linesize[1];
+            uint8_t *dstRow
+                = dst->data[1] + (dstUVY + y) * dst->linesize[1] + dstUVX * 2;
+            memcpy (dstRow, srcRow, srcUVBytes);
+        }
+    }
+
+    static auto scaleCenterCropNV12 (const FFmpeg::Frame &src, int targetW,
+                                     int targetH) -> FFmpeg::Frame
+    {
+        static thread_local FFmpeg::Scaler scaler;
+        const int srcW = src->width;
+        const int srcH = src->height;
+
+        if (srcW == targetW && srcH == targetH)
+        {
+            return src;
+        }
+
+        double scaleW = static_cast<double>(targetW) / srcW;
+        double scaleH = static_cast<double>(targetH) / srcH;
+        double scale = scaleW > scaleH ? scaleW : scaleH;
+        int scaledW = static_cast<int>(srcW * scale);
+        int scaledH = static_cast<int>(srcH * scale);
+
+        scaledW &= ~1;
+        scaledH &= ~1;
+        if (scaledW < 2)
+        {
+            scaledW = 2;
+        }
+        if (scaledH < 2)
+        {
+            scaledH = 2;
+        }
+
+        FFmpeg::Frame scaled
+            = (scaledW == srcW && scaledH == srcH)
+                  ? src
+                  : scaler.scale (src, AV_PIX_FMT_NV12, scaledW, scaledH);
+        FFmpeg::Frame dst (AV_PIX_FMT_NV12, targetW, targetH, src->pts);
+
+        int srcX = (scaled->width - targetW) / 2;
+        int srcY = (scaled->height - targetH) / 2;
+        srcX &= ~1;
+        srcY &= ~1;
+
+        for (int y = 0; y < targetH; ++y)
+        {
+            const uint8_t *srcRow
+                = scaled->data[0] + (srcY + y) * scaled->linesize[0] + srcX;
+            uint8_t *dstRow = dst->data[0] + y * dst->linesize[0];
+            memcpy (dstRow, srcRow, targetW);
+        }
+
+        const int uvH = targetH / 2;
+        const int srcUVX = srcX / 2;
+        const int srcUVY = srcY / 2;
+        for (int y = 0; y < uvH; ++y)
+        {
+            const uint8_t *srcRow = scaled->data[1]
+                                    + (srcUVY + y) * scaled->linesize[1]
+                                    + srcUVX * 2;
+            uint8_t *dstRow = dst->data[1] + y * dst->linesize[1];
+            memcpy (dstRow, srcRow, targetW);
+        }
+
+        return dst;
+    }
+};
 
 JNIEXPORT auto JNICALL JNI_OnLoad (JavaVM *vm, void *) -> jint
 {
@@ -130,8 +322,9 @@ Java_com_webrtc_HybridMicrophone_publishAudio (JNIEnv *env, jobject,
     publish (pipeIdStr, frame);
 }
 
-extern "C" JNIEXPORT void JNICALL Java_com_webrtc_Camera_publishVideo (
-    JNIEnv *env, jobject, jobjectArray pipeIds, jobject image)
+extern "C" JNIEXPORT auto JNICALL Java_com_webrtc_Camera_publishVideo (
+    JNIEnv *env, jobject, jobjectArray pipeIds, jobject image, jint rotation,
+    jboolean mirror) -> void
 {
     jclass imageClass = env->GetObjectClass (image);
     jmethodID getWidthMethod
@@ -202,13 +395,36 @@ extern "C" JNIEXPORT void JNICALL Java_com_webrtc_Camera_publishVideo (
     env->DeleteLocalRef (imageClass);
     env->DeleteLocalRef (planeClass);
 
+    int normalizedRotation = VideoTransform::normalizeRotation (rotation);
+    bool mirrorFrame = mirror == JNI_TRUE;
+    bool needsTransform = normalizedRotation != 0 || mirrorFrame;
+    FFmpeg::Frame outputFrame = frame;
+    if (needsTransform)
+    {
+        int outWidth
+            = (normalizedRotation == 90 || normalizedRotation == 270) ? height
+                                                                      : width;
+        int outHeight
+            = (normalizedRotation == 90 || normalizedRotation == 270) ? width
+                                                                      : height;
+        outputFrame
+            = FFmpeg::Frame (AV_PIX_FMT_NV12, outWidth, outHeight, frame->pts);
+        VideoTransform::rotateMirrorNV12 (frame, outputFrame,
+                                          normalizedRotation, mirrorFrame);
+    }
+    if (normalizedRotation == 90 || normalizedRotation == 270)
+    {
+        outputFrame = VideoTransform::scaleCenterCropNV12 (outputFrame, height,
+                                                           width);
+    }
+
     jsize pipeIdsLength = env->GetArrayLength (pipeIds);
     for (jsize i = 0; i < pipeIdsLength; ++i)
     {
         auto pipeId = (jstring)env->GetObjectArrayElement (pipeIds, i);
         const char *cstr = env->GetStringUTFChars (pipeId, nullptr);
         std::string pipeIdStr (cstr);
-        publish (pipeIdStr, frame);
+        publish (pipeIdStr, outputFrame);
         env->ReleaseStringUTFChars (pipeId, cstr);
         env->DeleteLocalRef (pipeId);
     }

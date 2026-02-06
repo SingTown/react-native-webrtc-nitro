@@ -68,3 +68,21 @@ void HybridMediaStreamTrack::setEnabled (bool enabled)
         this->disable ();
     }
 };
+
+auto HybridMediaStreamTrack::switchCamera (FacingMode facingMode)
+    -> std::shared_ptr<Promise<void>>
+{
+    if (kind != "video")
+    {
+        throw std::runtime_error ("Only implemented for video tracks");
+    }
+    if (camera)
+    {
+        return camera->switchCamera (facingMode);
+    }
+    if (mockCamera)
+    {
+        return Promise<void>::resolved ();
+    }
+    throw std::runtime_error ("Not implemented for remote tracks");
+}
