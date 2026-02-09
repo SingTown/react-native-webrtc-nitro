@@ -81,6 +81,11 @@ using namespace margelo::nitro::webrtc::views;
     swiftPart.setAudioPipeId(newViewProps.audioPipeId.value);
     newViewProps.audioPipeId.isDirty = false;
   }
+  // onDimensionsChange: optional
+  if (newViewProps.onDimensionsChange.isDirty) {
+    swiftPart.setOnDimensionsChange(newViewProps.onDimensionsChange.value);
+    newViewProps.onDimensionsChange.isDirty = false;
+  }
 
   swiftPart.afterUpdate();
 

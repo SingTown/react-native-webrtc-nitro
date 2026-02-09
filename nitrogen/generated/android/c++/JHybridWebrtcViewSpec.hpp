@@ -54,6 +54,8 @@ namespace margelo::nitro::webrtc {
     void setVideoPipeId(const std::optional<std::string>& videoPipeId) override;
     std::optional<std::string> getAudioPipeId() override;
     void setAudioPipeId(const std::optional<std::string>& audioPipeId) override;
+    std::optional<std::function<void(const VideoDimensionsEvent& /* event */)>> getOnDimensionsChange() override;
+    void setOnDimensionsChange(const std::optional<std::function<void(const VideoDimensionsEvent& /* event */)>>& onDimensionsChange) override;
 
   public:
     // Methods

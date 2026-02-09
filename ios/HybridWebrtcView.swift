@@ -81,6 +81,9 @@ class SpeakerManager {
 class HybridWebrtcView: HybridWebrtcViewSpec {
     var view: UIView = WebrtcDisplayView()
     var speaker: SpeakerManager? = nil
+    var onDimensionsChange: ((VideoDimensionsEvent) -> Void)?
+    private var lastEmittedWidth: Int?
+    private var lastEmittedHeight: Int?
     
     var videoSubscriptionId: Int32 = -1
     fileprivate static let lock = NSLock()
@@ -101,12 +104,31 @@ class HybridWebrtcView: HybridWebrtcViewSpec {
         didSet {
             FramePipeWrapper.unsubscribe(videoSubscriptionId)
             videoSubscriptionId = -1
+            lastEmittedWidth = nil
+            lastEmittedHeight = nil
             guard let videoPipeId = videoPipeId else {
                 return
             }
             if let displayView = view as? WebrtcDisplayView {
                 videoSubscriptionId = FramePipeWrapper.viewSubscribeVideo(
-                    displayView.displayLayer, pipeId: videoPipeId)
+                    displayView.displayLayer,
+                    pipeId: videoPipeId,
+                    onDimensionsChange: { [weak self] width, height in
+                        guard let self = self else { return }
+                        guard let onDimensionsChange = self.onDimensionsChange else {
+                            return
+                        }
+                        let widthInt = Int(width)
+                        let heightInt = Int(height)
+                        if self.lastEmittedWidth == widthInt && self.lastEmittedHeight == heightInt {
+                            return
+                        }
+                        self.lastEmittedWidth = widthInt
+                        self.lastEmittedHeight = heightInt
+                        onDimensionsChange(
+                            VideoDimensionsEvent(
+                                width: Double(widthInt), height: Double(heightInt)))
+                    })
             }
         }
     }

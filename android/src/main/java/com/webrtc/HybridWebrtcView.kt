@@ -10,6 +10,7 @@ import androidx.annotation.Keep
 import com.facebook.proguard.annotations.DoNotStrip
 import com.facebook.react.uimanager.ThemedReactContext
 import com.margelo.nitro.webrtc.HybridWebrtcViewSpec
+import com.margelo.nitro.webrtc.VideoDimensionsEvent
 
 @Keep
 @DoNotStrip
@@ -39,6 +40,9 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
     private var _videoPipeId: String? = null
     private var videoSubscriptionId: Int = -1
     private var audioSubscriptionId: Int = -1
+    private var lastEmittedWidth: Int? = null
+    private var lastEmittedHeight: Int? = null
+    override var onDimensionsChange: ((event: VideoDimensionsEvent) -> Unit)? = null
 
     override var audioPipeId: String?
         get() = _audioPipeId
@@ -95,4 +99,19 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
         set(value) {
             updateVideoPipeId(value, view.holder.surface)
         }
+
+    @Keep
+    @DoNotStrip
+    fun emitDimensionsChange(width: Int, height: Int) {
+        view.post {
+            if (lastEmittedWidth == width && lastEmittedHeight == height) {
+                return@post
+            }
+            lastEmittedWidth = width
+            lastEmittedHeight = height
+            onDimensionsChange?.invoke(
+                VideoDimensionsEvent(width.toDouble(), height.toDouble())
+            )
+        }
+    }
 }

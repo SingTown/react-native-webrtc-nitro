@@ -7,10 +7,16 @@
 
 #include "JHybridWebrtcViewSpec.hpp"
 
-
+// Forward declaration of `VideoDimensionsEvent` to properly resolve imports.
+namespace margelo::nitro::webrtc { struct VideoDimensionsEvent; }
 
 #include <string>
 #include <optional>
+#include "VideoDimensionsEvent.hpp"
+#include <functional>
+#include "JFunc_void_VideoDimensionsEvent.hpp"
+#include <NitroModules/JNICallable.hpp>
+#include "JVideoDimensionsEvent.hpp"
 
 namespace margelo::nitro::webrtc {
 
@@ -58,6 +64,23 @@ namespace margelo::nitro::webrtc {
   void JHybridWebrtcViewSpec::setAudioPipeId(const std::optional<std::string>& audioPipeId) {
     static const auto method = javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* audioPipeId */)>("setAudioPipeId");
     method(_javaPart, audioPipeId.has_value() ? jni::make_jstring(audioPipeId.value()) : nullptr);
+  }
+  std::optional<std::function<void(const VideoDimensionsEvent& /* event */)>> JHybridWebrtcViewSpec::getOnDimensionsChange() {
+    static const auto method = javaClassStatic()->getMethod<jni::local_ref<JFunc_void_VideoDimensionsEvent::javaobject>()>("getOnDimensionsChange_cxx");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional([&]() -> std::function<void(const VideoDimensionsEvent& /* event */)> {
+      if (__result->isInstanceOf(JFunc_void_VideoDimensionsEvent_cxx::javaClassStatic())) [[likely]] {
+        auto downcast = jni::static_ref_cast<JFunc_void_VideoDimensionsEvent_cxx::javaobject>(__result);
+        return downcast->cthis()->getFunction();
+      } else {
+        auto __resultRef = jni::make_global(__result);
+        return JNICallable<JFunc_void_VideoDimensionsEvent, void(VideoDimensionsEvent)>(std::move(__resultRef));
+      }
+    }()) : std::nullopt;
+  }
+  void JHybridWebrtcViewSpec::setOnDimensionsChange(const std::optional<std::function<void(const VideoDimensionsEvent& /* event */)>>& onDimensionsChange) {
+    static const auto method = javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void_VideoDimensionsEvent::javaobject> /* onDimensionsChange */)>("setOnDimensionsChange_cxx");
+    method(_javaPart, onDimensionsChange.has_value() ? JFunc_void_VideoDimensionsEvent_cxx::fromCpp(onDimensionsChange.value()) : nullptr);
   }
 
   // Methods

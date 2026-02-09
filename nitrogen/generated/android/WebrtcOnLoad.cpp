@@ -19,6 +19,7 @@
 #include "JHybridMicrophoneSpec.hpp"
 #include "JHybridPermissionsSpec.hpp"
 #include "JHybridWebrtcViewSpec.hpp"
+#include "JFunc_void_VideoDimensionsEvent.hpp"
 #include "views/JHybridWebrtcViewStateUpdater.hpp"
 #include <NitroModules/DefaultConstructableObject.hpp>
 #include "HybridMediaStreamTrack.hpp"
@@ -43,6 +44,7 @@ int initialize(JavaVM* vm) {
     margelo::nitro::webrtc::JHybridMicrophoneSpec::registerNatives();
     margelo::nitro::webrtc::JHybridPermissionsSpec::registerNatives();
     margelo::nitro::webrtc::JHybridWebrtcViewSpec::registerNatives();
+    margelo::nitro::webrtc::JFunc_void_VideoDimensionsEvent_cxx::registerNatives();
     margelo::nitro::webrtc::views::JHybridWebrtcViewStateUpdater::registerNatives();
 
     // Register Nitro Hybrid Objects

@@ -12,10 +12,13 @@
 // Forward declaration of `HybridWebrtcViewSpec_cxx` to properly resolve imports.
 namespace Webrtc { class HybridWebrtcViewSpec_cxx; }
 
-
+// Forward declaration of `VideoDimensionsEvent` to properly resolve imports.
+namespace margelo::nitro::webrtc { struct VideoDimensionsEvent; }
 
 #include <string>
 #include <optional>
+#include "VideoDimensionsEvent.hpp"
+#include <functional>
 
 #include "Webrtc-Swift-Cxx-Umbrella.hpp"
 
@@ -70,6 +73,13 @@ namespace margelo::nitro::webrtc {
     }
     inline void setAudioPipeId(const std::optional<std::string>& audioPipeId) noexcept override {
       _swiftPart.setAudioPipeId(audioPipeId);
+    }
+    inline std::optional<std::function<void(const VideoDimensionsEvent& /* event */)>> getOnDimensionsChange() noexcept override {
+      auto __result = _swiftPart.getOnDimensionsChange();
+      return __result;
+    }
+    inline void setOnDimensionsChange(const std::optional<std::function<void(const VideoDimensionsEvent& /* event */)>>& onDimensionsChange) noexcept override {
+      _swiftPart.setOnDimensionsChange(onDimensionsChange);
     }
 
   public:

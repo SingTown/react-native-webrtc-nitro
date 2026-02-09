@@ -18,6 +18,8 @@ namespace margelo::nitro::webrtc {
       prototype.registerHybridSetter("videoPipeId", &HybridWebrtcViewSpec::setVideoPipeId);
       prototype.registerHybridGetter("audioPipeId", &HybridWebrtcViewSpec::getAudioPipeId);
       prototype.registerHybridSetter("audioPipeId", &HybridWebrtcViewSpec::setAudioPipeId);
+      prototype.registerHybridGetter("onDimensionsChange", &HybridWebrtcViewSpec::getOnDimensionsChange);
+      prototype.registerHybridSetter("onDimensionsChange", &HybridWebrtcViewSpec::setOnDimensionsChange);
     });
   }
 

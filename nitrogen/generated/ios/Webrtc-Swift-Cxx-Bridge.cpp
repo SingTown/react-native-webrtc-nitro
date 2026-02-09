@@ -89,6 +89,14 @@ namespace margelo::nitro::webrtc::bridge::swift {
     return swiftPart.toUnsafe();
   }
   
+  // pragma MARK: std::function<void(const VideoDimensionsEvent& /* event */)>
+  Func_void_VideoDimensionsEvent create_Func_void_VideoDimensionsEvent(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = Webrtc::Func_void_VideoDimensionsEvent::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const VideoDimensionsEvent& event) mutable -> void {
+      swiftClosure.call(event);
+    };
+  }
+  
   // pragma MARK: std::shared_ptr<HybridWebrtcViewSpec>
   std::shared_ptr<HybridWebrtcViewSpec> create_std__shared_ptr_HybridWebrtcViewSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
     Webrtc::HybridWebrtcViewSpec_cxx swiftPart = Webrtc::HybridWebrtcViewSpec_cxx::fromUnsafe(swiftUnsafePointer);

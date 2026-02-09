@@ -67,7 +67,7 @@ Java_com_webrtc_HybridWebrtcView_subscribeAudio (JNIEnv *env, jobject,
 }
 
 extern "C" JNIEXPORT auto JNICALL
-Java_com_webrtc_HybridWebrtcView_subscribeVideo (JNIEnv *env, jobject,
+Java_com_webrtc_HybridWebrtcView_subscribeVideo (JNIEnv *env, jobject thiz,
                                                  jstring pipeId,
                                                  jobject surface) -> jint
 {
@@ -82,11 +82,24 @@ Java_com_webrtc_HybridWebrtcView_subscribeVideo (JNIEnv *env, jobject,
     }
 
     auto scaler = std::make_shared<FFmpeg::Scaler> ();
+    jobject viewGlobal = env->NewGlobalRef (thiz);
     FrameCallback callback
-        = [window, scaler] (const std::string &, int, const FFmpeg::Frame &raw)
+        = [window, scaler, viewGlobal] (const std::string &, int, const FFmpeg::Frame &raw)
     {
         FFmpeg::Frame frame
             = scaler->scale (raw, AV_PIX_FMT_RGBA, raw->width, raw->height);
+
+        JNIEnv *env;
+        gJvm->AttachCurrentThread (&env, nullptr);
+        jclass viewCls = env->GetObjectClass (viewGlobal);
+        jmethodID emitDimensionsChangeMethod
+            = env->GetMethodID (viewCls, "emitDimensionsChange", "(II)V");
+        if (emitDimensionsChangeMethod != nullptr)
+        {
+            env->CallVoidMethod (viewGlobal, emitDimensionsChangeMethod,
+                                 frame->width, frame->height);
+        }
+        env->DeleteLocalRef (viewCls);
 
         ANativeWindow_setBuffersGeometry (window, frame->width, frame->height,
                                           WINDOW_FORMAT_RGBA_8888);
@@ -107,8 +120,13 @@ Java_com_webrtc_HybridWebrtcView_subscribeVideo (JNIEnv *env, jobject,
 
         ANativeWindow_unlockAndPost (window);
     };
-    CleanupCallback cleanup
-        = [window] (int) { ANativeWindow_release (window); };
+    CleanupCallback cleanup = [window, viewGlobal] (int)
+    {
+        JNIEnv *env;
+        gJvm->AttachCurrentThread (&env, nullptr);
+        env->DeleteGlobalRef (viewGlobal);
+        ANativeWindow_release (window);
+    };
     std::string pipeIdStr (env->GetStringUTFChars (pipeId, nullptr));
     return subscribe ({ pipeIdStr }, callback, cleanup);
 }
