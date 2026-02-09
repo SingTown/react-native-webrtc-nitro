@@ -53,6 +53,20 @@ abstract class HybridWebrtcViewSpec: HybridView() {
   @set:DoNotStrip
   @set:Keep
   abstract var audioPipeId: String?
+  
+  abstract var onDimensionsChange: ((event: VideoDimensionsEvent) -> Unit)?
+  
+  private var onDimensionsChange_cxx: Func_void_VideoDimensionsEvent?
+    @Keep
+    @DoNotStrip
+    get() {
+      return onDimensionsChange?.let { Func_void_VideoDimensionsEvent_java(it) }
+    }
+    @Keep
+    @DoNotStrip
+    set(value) {
+      onDimensionsChange = value?.let { it }
+    }
 
   // Methods
   

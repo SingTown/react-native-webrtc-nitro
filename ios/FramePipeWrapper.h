@@ -4,6 +4,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+typedef void (^VideoDimensionsChangeCallback)(int width, int height);
+
 @interface FramePipeWrapper : NSObject
 
 + (void)cameraPublishVideo:(CMSampleBufferRef)sampleBuffer
@@ -13,7 +15,9 @@ NS_ASSUME_NONNULL_BEGIN
                        pipeIds:(NSArray<NSString *> *)pipeIds;
 
 + (int)viewSubscribeVideo:(AVSampleBufferDisplayLayer *)displayLayer
-                   pipeId:(NSString *)pipeId;
+                   pipeId:(NSString *)pipeId
+      onDimensionsChange:
+          (nullable VideoDimensionsChangeCallback)onDimensionsChange;
 
 + (int)speakerSubscribeAudio:(AVAudioPlayerNode *)audioPlayer
                       pipeId:(NSString *)pipeId

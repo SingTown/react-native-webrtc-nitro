@@ -18,6 +18,8 @@ namespace margelo::nitro::webrtc { class HybridPermissionsSpec; }
 namespace margelo::nitro::webrtc { class HybridWebrtcViewSpec; }
 // Forward declaration of `PermissionState` to properly resolve imports.
 namespace margelo::nitro::webrtc { enum class PermissionState; }
+// Forward declaration of `VideoDimensionsEvent` to properly resolve imports.
+namespace margelo::nitro::webrtc { struct VideoDimensionsEvent; }
 
 // Forward declarations of Swift defined types
 // Forward declaration of `HybridCameraSpec_cxx` to properly resolve imports.
@@ -35,6 +37,7 @@ namespace Webrtc { class HybridWebrtcViewSpec_cxx; }
 #include "HybridPermissionsSpec.hpp"
 #include "HybridWebrtcViewSpec.hpp"
 #include "PermissionState.hpp"
+#include "VideoDimensionsEvent.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/PromiseHolder.hpp>
 #include <NitroModules/Result.hpp>
@@ -206,6 +209,43 @@ namespace margelo::nitro::webrtc::bridge::swift {
     return optional.has_value();
   }
   inline std::string get_std__optional_std__string_(const std::optional<std::string>& optional) noexcept {
+    return *optional;
+  }
+  
+  // pragma MARK: std::function<void(const VideoDimensionsEvent& /* event */)>
+  /**
+   * Specialized version of `std::function<void(const VideoDimensionsEvent&)>`.
+   */
+  using Func_void_VideoDimensionsEvent = std::function<void(const VideoDimensionsEvent& /* event */)>;
+  /**
+   * Wrapper class for a `std::function<void(const VideoDimensionsEvent& / * event * /)>`, this can be used from Swift.
+   */
+  class Func_void_VideoDimensionsEvent_Wrapper final {
+  public:
+    explicit Func_void_VideoDimensionsEvent_Wrapper(std::function<void(const VideoDimensionsEvent& /* event */)>&& func): _function(std::make_unique<std::function<void(const VideoDimensionsEvent& /* event */)>>(std::move(func))) {}
+    inline void call(VideoDimensionsEvent event) const noexcept {
+      _function->operator()(event);
+    }
+  private:
+    std::unique_ptr<std::function<void(const VideoDimensionsEvent& /* event */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_VideoDimensionsEvent create_Func_void_VideoDimensionsEvent(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_VideoDimensionsEvent_Wrapper wrap_Func_void_VideoDimensionsEvent(Func_void_VideoDimensionsEvent value) noexcept {
+    return Func_void_VideoDimensionsEvent_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void(const VideoDimensionsEvent& /* event */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(const VideoDimensionsEvent& / * event * /)>>`.
+   */
+  using std__optional_std__function_void_const_VideoDimensionsEvent_____event______ = std::optional<std::function<void(const VideoDimensionsEvent& /* event */)>>;
+  inline std::optional<std::function<void(const VideoDimensionsEvent& /* event */)>> create_std__optional_std__function_void_const_VideoDimensionsEvent_____event______(const std::function<void(const VideoDimensionsEvent& /* event */)>& value) noexcept {
+    return std::optional<std::function<void(const VideoDimensionsEvent& /* event */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_const_VideoDimensionsEvent_____event______(const std::optional<std::function<void(const VideoDimensionsEvent& /* event */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(const VideoDimensionsEvent& /* event */)> get_std__optional_std__function_void_const_VideoDimensionsEvent_____event______(const std::optional<std::function<void(const VideoDimensionsEvent& /* event */)>>& optional) noexcept {
     return *optional;
   }
   

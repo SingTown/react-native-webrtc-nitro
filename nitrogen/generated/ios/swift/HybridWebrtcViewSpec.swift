@@ -13,6 +13,7 @@ public protocol HybridWebrtcViewSpec_protocol: HybridObject, HybridView {
   // Properties
   var videoPipeId: String? { get set }
   var audioPipeId: String? { get set }
+  var onDimensionsChange: ((_ event: VideoDimensionsEvent) -> Void)? { get set }
 
   // Methods
   

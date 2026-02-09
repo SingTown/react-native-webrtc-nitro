@@ -133,12 +133,15 @@
 
 + (int)viewSubscribeVideo:(AVSampleBufferDisplayLayer *)displayLayer
                    pipeId:(NSString *)pipeId
+      onDimensionsChange:
+          (VideoDimensionsChangeCallback)onDimensionsChange
 {
 
     auto scaler = std::make_shared<FFmpeg::Scaler> ();
     auto callback
-        = [displayLayer, scaler] (std::string pipeId, int subscriptionId,
-                                  const FFmpeg::Frame &raw)
+        = [displayLayer, scaler, onDimensionsChange] (
+              std::string pipeId, int subscriptionId,
+              const FFmpeg::Frame &raw)
     {
         FFmpeg::Frame frame
             = scaler->scale (raw, AV_PIX_FMT_NV12, raw->width, raw->height);
@@ -230,6 +233,11 @@
         }
 
         dispatch_async (dispatch_get_main_queue (), ^{
+          if (onDimensionsChange != nil)
+          {
+              onDimensionsChange (width, height);
+          }
+
           if (displayLayer.status == AVQueuedSampleBufferRenderingStatusFailed)
           {
               NSLog (

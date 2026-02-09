@@ -46,6 +46,16 @@ namespace margelo::nitro::webrtc::views {
         throw std::runtime_error(std::string("WebrtcView.audioPipeId: ") + exc.what());
       }
     }()),
+    onDimensionsChange([&]() -> CachedProp<std::optional<std::function<void(const VideoDimensionsEvent& /* event */)>>> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("onDimensionsChange", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.onDimensionsChange;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<std::optional<std::function<void(const VideoDimensionsEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onDimensionsChange);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("WebrtcView.onDimensionsChange: ") + exc.what());
+      }
+    }()),
     hybridRef([&]() -> CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridWebrtcViewSpec>& /* ref */)>>> {
       try {
         const react::RawValue* rawValue = rawProps.at("hybridRef", nullptr, nullptr);
@@ -61,12 +71,14 @@ namespace margelo::nitro::webrtc::views {
     react::ViewProps(),
     videoPipeId(other.videoPipeId),
     audioPipeId(other.audioPipeId),
+    onDimensionsChange(other.onDimensionsChange),
     hybridRef(other.hybridRef) { }
 
   bool HybridWebrtcViewProps::filterObjectKeys(const std::string& propName) {
     switch (hashString(propName)) {
       case hashString("videoPipeId"): return true;
       case hashString("audioPipeId"): return true;
+      case hashString("onDimensionsChange"): return true;
       case hashString("hybridRef"): return true;
       default: return false;
     }

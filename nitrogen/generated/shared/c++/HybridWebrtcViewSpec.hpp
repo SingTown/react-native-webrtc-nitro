@@ -13,10 +13,13 @@
 #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
 #endif
 
-
+// Forward declaration of `VideoDimensionsEvent` to properly resolve imports.
+namespace margelo::nitro::webrtc { struct VideoDimensionsEvent; }
 
 #include <string>
 #include <optional>
+#include "VideoDimensionsEvent.hpp"
+#include <functional>
 
 namespace margelo::nitro::webrtc {
 
@@ -49,6 +52,8 @@ namespace margelo::nitro::webrtc {
       virtual void setVideoPipeId(const std::optional<std::string>& videoPipeId) = 0;
       virtual std::optional<std::string> getAudioPipeId() = 0;
       virtual void setAudioPipeId(const std::optional<std::string>& audioPipeId) = 0;
+      virtual std::optional<std::function<void(const VideoDimensionsEvent& /* event */)>> getOnDimensionsChange() = 0;
+      virtual void setOnDimensionsChange(const std::optional<std::function<void(const VideoDimensionsEvent& /* event */)>>& onDimensionsChange) = 0;
 
     public:
       // Methods

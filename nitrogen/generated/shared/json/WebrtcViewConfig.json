@@ -6,6 +6,7 @@
   "validAttributes": {
     "videoPipeId": true,
     "audioPipeId": true,
+    "onDimensionsChange": true,
     "hybridRef": true
   }
 }

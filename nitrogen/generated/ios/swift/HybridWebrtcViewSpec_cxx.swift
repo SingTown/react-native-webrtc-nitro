@@ -161,6 +161,38 @@ open class HybridWebrtcViewSpec_cxx {
       }()
     }
   }
+  
+  public final var onDimensionsChange: bridge.std__optional_std__function_void_const_VideoDimensionsEvent_____event______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_VideoDimensionsEvent_____event______ in
+        if let __unwrappedValue = self.__implementation.onDimensionsChange {
+          return bridge.create_std__optional_std__function_void_const_VideoDimensionsEvent_____event______({ () -> bridge.Func_void_VideoDimensionsEvent in
+            let __closureWrapper = Func_void_VideoDimensionsEvent(__unwrappedValue)
+            return bridge.create_Func_void_VideoDimensionsEvent(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onDimensionsChange = { () -> ((_ event: VideoDimensionsEvent) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_VideoDimensionsEvent_____event______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_VideoDimensionsEvent_____event______(newValue)
+          return { () -> (VideoDimensionsEvent) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_VideoDimensionsEvent(__unwrapped)
+            return { (__event: VideoDimensionsEvent) -> Void in
+              __wrappedFunction.call(__event)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
 
   // Methods
   public final func getView() -> UnsafeMutableRawPointer {
