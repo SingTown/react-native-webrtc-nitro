@@ -1,5 +1,6 @@
 #include "FFmpeg.hpp"
 #include "FramePipe.hpp"
+#include "NativeMicrophone.hpp"
 #include "WebrtcOnLoad.hpp"
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
@@ -8,6 +9,7 @@
 #include <string>
 
 JavaVM *gJvm = nullptr;
+static NativeMicrophone gNativeMicrophone;
 
 JNIEXPORT auto JNICALL JNI_OnLoad (JavaVM *vm, void *) -> jint
 {
@@ -128,6 +130,22 @@ Java_com_webrtc_HybridMicrophone_publishAudio (JNIEnv *env, jobject,
 
     std::string pipeIdStr (env->GetStringUTFChars (pipeId, nullptr));
     publish (pipeIdStr, frame);
+}
+
+extern "C" JNIEXPORT auto JNICALL
+Java_com_webrtc_HybridMicrophone_startNativeMic (JNIEnv *env, jobject,
+                                                 jstring pipeId) -> jboolean
+{
+    const char *pipeIdChars = env->GetStringUTFChars (pipeId, nullptr);
+    std::string pipeIdStr (pipeIdChars);
+    env->ReleaseStringUTFChars (pipeId, pipeIdChars);
+    return gNativeMicrophone.start (pipeIdStr) ? JNI_TRUE : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_webrtc_HybridMicrophone_stopNativeMic (JNIEnv *, jobject)
+{
+    gNativeMicrophone.stop ();
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webrtc_Camera_publishVideo (

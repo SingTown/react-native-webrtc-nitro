@@ -4,8 +4,10 @@ import android.view.Surface
 import android.view.SurfaceView
 import android.view.SurfaceHolder
 import android.media.AudioFormat
+import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.media.AudioTrack
+import android.content.Context
 import androidx.annotation.Keep
 import com.facebook.proguard.annotations.DoNotStrip
 import com.facebook.react.uimanager.ThemedReactContext
@@ -16,9 +18,16 @@ import com.margelo.nitro.webrtc.HybridWebrtcViewSpec
 class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec() {
     // View
     override val view: SurfaceView = SurfaceView(context)
+
+    private val audioManager: AudioManager =
+        context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private var previousMode: Int? = null
+    private var previousSpeakerphoneOn: Boolean? = null
+    private var communicationRouteApplied = false
+
     companion object {
         private var audioTrack = AudioTrack(
-            AudioManager.STREAM_MUSIC,
+            AudioManager.STREAM_VOICE_CALL,
             48000,
             AudioFormat.CHANNEL_OUT_STEREO,
             AudioFormat.ENCODING_PCM_16BIT,
@@ -45,10 +54,16 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
         set(value) {
             if (this.audioSubscriptionId > 0) {
                 this.unsubscribe(this.audioSubscriptionId)
+                this.audioSubscriptionId = -1
             }
             if (value.isNullOrEmpty()) {
+                _audioPipeId = null
+                audioTrack.pause()
+                audioTrack.flush()
+                restoreAudioRoute()
                 return;
             }
+            applyCommunicationAudioRoute()
             this.audioSubscriptionId = subscribeAudio(value, audioTrack)
             this._audioPipeId = value
             audioTrack.play()
@@ -95,4 +110,70 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
         set(value) {
             updateVideoPipeId(value, view.holder.surface)
         }
+
+    override fun dispose() {
+        if (this.audioSubscriptionId > 0) {
+            this.unsubscribe(this.audioSubscriptionId)
+            this.audioSubscriptionId = -1
+        }
+        audioTrack.pause()
+        audioTrack.flush()
+        restoreAudioRoute()
+    }
+
+    private fun applyCommunicationAudioRoute() {
+        if (communicationRouteApplied) {
+            return
+        }
+        previousMode = audioManager.mode
+        previousSpeakerphoneOn = audioManager.isSpeakerphoneOn
+        audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+        @Suppress("DEPRECATION")
+        run {
+            audioManager.isSpeakerphoneOn = false
+        }
+        routeAudioTrackToPreferredOutput()
+        communicationRouteApplied = true
+    }
+
+    private fun restoreAudioRoute() {
+        if (!communicationRouteApplied) {
+            return
+        }
+        audioTrack.setPreferredDevice(null)
+        previousSpeakerphoneOn?.let { audioManager.isSpeakerphoneOn = it }
+        previousMode?.let { audioManager.mode = it }
+        previousSpeakerphoneOn = null
+        previousMode = null
+        communicationRouteApplied = false
+    }
+
+    private fun routeAudioTrackToPreferredOutput() {
+        val target = selectPreferredOutputDevice()
+        if (target != null) {
+            audioTrack.setPreferredDevice(target)
+        } else {
+            audioTrack.setPreferredDevice(null)
+        }
+    }
+
+    private fun selectPreferredOutputDevice(): AudioDeviceInfo? {
+        val devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+        val preferredTypes = intArrayOf(
+            AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
+            AudioDeviceInfo.TYPE_WIRED_HEADSET,
+            AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
+            AudioDeviceInfo.TYPE_BLE_HEADSET,
+            AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
+            AudioDeviceInfo.TYPE_USB_HEADSET,
+            AudioDeviceInfo.TYPE_HEARING_AID
+        )
+        for (type in preferredTypes) {
+            val match = devices.firstOrNull { it.type == type }
+            if (match != null) {
+                return match
+            }
+        }
+        return null
+    }
 }
