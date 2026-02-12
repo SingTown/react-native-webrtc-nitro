@@ -22,7 +22,11 @@ private class MicrophoneManager {
     private let formatDescLock = NSLock()
     
     func prepare() throws {
+        try audioSession.setCategory(
+            .playAndRecord, mode: .videoChat, options: [.defaultToSpeaker, .allowBluetooth]
+        )
         try audioSession.setActive(true)
+        try setPreferredInputDevice()
         var desc = AudioComponentDescription(
             componentType: kAudioUnitType_Output,
             componentSubType: kAudioUnitSubType_VoiceProcessingIO,
@@ -60,6 +64,19 @@ private class MicrophoneManager {
         if empty {
             guard let au = audioUnit else { return }
             AudioOutputUnitStop(au)
+        }
+    }
+    
+    private func setPreferredInputDevice() throws {
+        guard let inputs = audioSession.availableInputs, !inputs.isEmpty else { return }
+        if let externalMic = inputs.first(where: {
+            $0.portType == .headsetMic || $0.portType == .bluetoothHFP || $0.portType == .usbAudio
+        }) {
+            try audioSession.setPreferredInput(externalMic)
+            return
+        }
+        if let builtInMic = inputs.first(where: { $0.portType == .builtInMic }) {
+            try audioSession.setPreferredInput(builtInMic)
         }
     }
     

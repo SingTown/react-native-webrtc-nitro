@@ -37,7 +37,7 @@ class WebrtcDisplayView: UIView {
 }
 
 class SpeakerManager {
-    private static var sharedAudioSession = AVAudioSession()
+    private static let sharedAudioSession = AVAudioSession.sharedInstance()
     private static var sharedAudioEngine = AVAudioEngine()
     private var audioPlayer = AVAudioPlayerNode()
     private var speakerQueue = DispatchQueue(label: "com.speaker.manager.audio.queue")
