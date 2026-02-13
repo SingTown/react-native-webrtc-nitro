@@ -62,9 +62,16 @@ private class MicrophoneManager {
         let empty = activePipeIds.isEmpty
         pipeIdsLock.unlock()
         if empty {
-            guard let au = audioUnit else { return }
-            AudioOutputUnitStop(au)
+            teardownAudioUnit()
         }
+    }
+
+    private func teardownAudioUnit() {
+        guard let au = audioUnit else { return }
+        AudioOutputUnitStop(au)
+        AudioUnitUninitialize(au)
+        AudioComponentInstanceDispose(au)
+        audioUnit = nil
     }
     
     private func setPreferredInputDevice() throws {
