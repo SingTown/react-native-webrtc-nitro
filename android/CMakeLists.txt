@@ -22,6 +22,7 @@ file(GLOB CPP_SOURCES
 # Define C++ library and add all sources
 add_library(${PACKAGE_NAME} SHARED
         src/main/cpp/cpp-adapter.cpp
+        src/main/cpp/NativeMicrophone.cpp
         ${CPP_SOURCES}
 )
 
@@ -39,12 +40,14 @@ include_directories(
 )
 
 find_library(LOG_LIB log)
+find_package(oboe REQUIRED CONFIG)
 
 # Link all libraries together
 target_link_libraries(
         ${PACKAGE_NAME}
         ${LOG_LIB}
         android                                   # <-- Android core
+        oboe::oboe
         ${LIBDATACHANNEL_PATH}/lib/libdatachannel.so
         ${FFMPEG_PATH}/lib/libavformat.so
         ${FFMPEG_PATH}/lib/libavcodec.so
