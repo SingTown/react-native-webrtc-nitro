@@ -1,3 +1,22 @@
+## [1.8.0](https://github.com/SingTown/react-native-webrtc-nitro/compare/v1.7.0...v1.8.0) (2026-02-27)
+
+### ✨ Features
+
+* **audio:** migrate recording from AudioRecord to Oboe and add input gain ([#64](https://github.com/SingTown/react-native-webrtc-nitro/issues/64)) ([92d3738](https://github.com/SingTown/react-native-webrtc-nitro/commit/92d37389bb74edd0973c1acf38702004e0728495))
+* enable iOS Toolbox ([#49](https://github.com/SingTown/react-native-webrtc-nitro/issues/49)) ([8088d7a](https://github.com/SingTown/react-native-webrtc-nitro/commit/8088d7afb2f0ff2386d60454a6dd4136c8b03276))
+
+### 🐛 Bug Fixes
+
+* audio track crash ([#53](https://github.com/SingTown/react-native-webrtc-nitro/issues/53)) ([94a2e13](https://github.com/SingTown/react-native-webrtc-nitro/commit/94a2e134bbba46a617a7268cf88d3f7aee59c5ca))
+* **framepipe:** fix race between publish and unsubscribe ([#54](https://github.com/SingTown/react-native-webrtc-nitro/issues/54)) ([067cef8](https://github.com/SingTown/react-native-webrtc-nitro/commit/067cef838beef0c8703575464f6633fff05eb59b))
+* **ios:** restore mic capture when wired or bluetooth headset is connected ([#66](https://github.com/SingTown/react-native-webrtc-nitro/issues/66)) ([41908ec](https://github.com/SingTown/react-native-webrtc-nitro/commit/41908ec34349701188f8e55733f80e252ac45261))
+* **ios:** teardown VoiceProcessingIO when microphone becomes idle ([#65](https://github.com/SingTown/react-native-webrtc-nitro/issues/65)) ([675020c](https://github.com/SingTown/react-native-webrtc-nitro/commit/675020c6c7b6889a7940097baefea4b4ba848f72))
+
+### 🛠️ Other changes
+
+* update ios simulator ([#69](https://github.com/SingTown/react-native-webrtc-nitro/issues/69)) ([8ff02e3](https://github.com/SingTown/react-native-webrtc-nitro/commit/8ff02e3f2acd57e537d5c8b0021a2090f1953486))
+* update nitrogen generated ([#51](https://github.com/SingTown/react-native-webrtc-nitro/issues/51)) ([7655cad](https://github.com/SingTown/react-native-webrtc-nitro/commit/7655cad5a540958c03cfe47fd1b6f18963096d98))
+
 ## [1.7.0](https://github.com/SingTown/react-native-webrtc-nitro/compare/v1.6.0...v1.7.0) (2025-12-28)
 
 ### ✨ Features
