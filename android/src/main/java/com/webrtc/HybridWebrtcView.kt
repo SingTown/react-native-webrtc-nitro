@@ -24,6 +24,7 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
     private var previousMode: Int? = null
     private var previousSpeakerphoneOn: Boolean? = null
     private var communicationRouteApplied = false
+    private var communicationModeApplied = false
 
     companion object {
         private var audioTrack = AudioTrack(
@@ -127,12 +128,20 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
         }
         previousMode = audioManager.mode
         previousSpeakerphoneOn = audioManager.isSpeakerphoneOn
-        audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
-        @Suppress("DEPRECATION")
-        run {
-            audioManager.isSpeakerphoneOn = false
+        communicationModeApplied = false
+
+        val targetOutput = selectPreferredOutputDevice()
+        if (targetOutput != null) {
+            audioTrack.setPreferredDevice(targetOutput)
+        } else {
+            audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+            @Suppress("DEPRECATION")
+            run {
+                audioManager.isSpeakerphoneOn = false
+            }
+            audioTrack.setPreferredDevice(null)
+            communicationModeApplied = true
         }
-        routeAudioTrackToPreferredOutput()
         communicationRouteApplied = true
     }
 
@@ -141,20 +150,14 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
             return
         }
         audioTrack.setPreferredDevice(null)
-        previousSpeakerphoneOn?.let { audioManager.isSpeakerphoneOn = it }
-        previousMode?.let { audioManager.mode = it }
+        if (communicationModeApplied) {
+            previousSpeakerphoneOn?.let { audioManager.isSpeakerphoneOn = it }
+            previousMode?.let { audioManager.mode = it }
+        }
         previousSpeakerphoneOn = null
         previousMode = null
+        communicationModeApplied = false
         communicationRouteApplied = false
-    }
-
-    private fun routeAudioTrackToPreferredOutput() {
-        val target = selectPreferredOutputDevice()
-        if (target != null) {
-            audioTrack.setPreferredDevice(target)
-        } else {
-            audioTrack.setPreferredDevice(null)
-        }
     }
 
     private fun selectPreferredOutputDevice(): AudioDeviceInfo? {
