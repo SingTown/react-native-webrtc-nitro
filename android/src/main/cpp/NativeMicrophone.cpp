@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <thread>
 
 namespace
 {
@@ -38,36 +39,10 @@ auto NativeMicrophone::start (const std::string &pipeId) -> bool
         stream_.reset ();
     }
 
-    oboe::AudioStreamBuilder builder;
-    builder.setDirection (oboe::Direction::Input)
-        ->setPerformanceMode (oboe::PerformanceMode::LowLatency)
-        ->setSharingMode (oboe::SharingMode::Shared)
-        ->setInputPreset (oboe::InputPreset::VoiceCommunication)
-        ->setFormat (oboe::AudioFormat::I16)
-        ->setChannelCount (oboe::ChannelCount::Mono)
-        ->setSampleRate (kTargetSampleRate)
-        ->setDataCallback (this)
-        ->setErrorCallback (this);
-
-    oboe::Result result = builder.openStream (stream_);
-    if (result != oboe::Result::OK || stream_ == nullptr)
-    {
-        return false;
-    }
-
     pipeId_ = pipeId;
     smoothedGain_ = 1.0f;
-
-    result = stream_->requestStart ();
-    if (result != oboe::Result::OK)
-    {
-        stream_->close ();
-        stream_.reset ();
-        pipeId_.clear ();
-        return false;
-    }
-
-    return true;
+    restartInProgress_.store (false);
+    return openAndStartStreamLocked ();
 }
 
 void NativeMicrophone::stop ()
@@ -77,6 +52,7 @@ void NativeMicrophone::stop ()
         std::lock_guard<std::mutex> lock (mutex_);
         pipeId_.clear ();
         smoothedGain_ = 1.0f;
+        restartInProgress_.store (false);
         streamToClose = std::move (stream_);
     }
 
@@ -171,5 +147,96 @@ auto NativeMicrophone::onAudioReady (oboe::AudioStream *audioStream,
 
 auto NativeMicrophone::onError (oboe::AudioStream *, oboe::Result) -> bool
 {
-    return false;
+    scheduleRestart ();
+    return true;
+}
+
+auto NativeMicrophone::openAndStartStreamLocked () -> bool
+{
+    oboe::AudioStreamBuilder builder;
+    builder.setDirection (oboe::Direction::Input)
+        ->setPerformanceMode (oboe::PerformanceMode::LowLatency)
+        ->setSharingMode (oboe::SharingMode::Shared)
+        ->setInputPreset (oboe::InputPreset::VoiceCommunication)
+        ->setFormat (oboe::AudioFormat::I16)
+        ->setChannelCount (oboe::ChannelCount::Mono)
+        ->setSampleRate (kTargetSampleRate)
+        ->setDataCallback (this)
+        ->setErrorCallback (this);
+
+    oboe::Result result = builder.openStream (stream_);
+    if (result != oboe::Result::OK || stream_ == nullptr)
+    {
+        return false;
+    }
+
+    result = stream_->requestStart ();
+    if (result != oboe::Result::OK)
+    {
+        stream_->close ();
+        stream_.reset ();
+        return false;
+    }
+
+    return true;
+}
+
+void NativeMicrophone::scheduleRestart ()
+{
+    bool expected = false;
+    if (!restartInProgress_.compare_exchange_strong (expected, true))
+    {
+        return;
+    }
+
+    std::string pipeSnapshot;
+    {
+        std::lock_guard<std::mutex> lock (mutex_);
+        pipeSnapshot = pipeId_;
+    }
+    if (pipeSnapshot.empty ())
+    {
+        restartInProgress_.store (false);
+        return;
+    }
+
+    std::thread ([this, pipeSnapshot] {
+        std::this_thread::sleep_for (std::chrono::milliseconds (180));
+        for (int attempt = 1; attempt <= 3; ++attempt)
+        {
+            std::shared_ptr<oboe::AudioStream> streamToClose;
+            {
+                std::lock_guard<std::mutex> lock (mutex_);
+                if (pipeId_.empty () || pipeId_ != pipeSnapshot)
+                {
+                    restartInProgress_.store (false);
+                    return;
+                }
+                streamToClose = std::move (stream_);
+            }
+            if (streamToClose != nullptr)
+            {
+                streamToClose->requestStop ();
+                streamToClose->close ();
+            }
+
+            bool started = false;
+            {
+                std::lock_guard<std::mutex> lock (mutex_);
+                if (pipeId_.empty () || pipeId_ != pipeSnapshot)
+                {
+                    restartInProgress_.store (false);
+                    return;
+                }
+                started = openAndStartStreamLocked ();
+            }
+            if (started)
+            {
+                restartInProgress_.store (false);
+                return;
+            }
+            std::this_thread::sleep_for (std::chrono::milliseconds (220));
+        }
+        restartInProgress_.store (false);
+    }).detach ();
 }
