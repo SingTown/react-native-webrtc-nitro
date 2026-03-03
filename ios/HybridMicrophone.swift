@@ -23,7 +23,7 @@ private class MicrophoneManager {
     
     func prepare() throws {
         try audioSession.setCategory(
-            .playAndRecord, mode: .videoChat, options: [.defaultToSpeaker, .allowBluetooth]
+            .playAndRecord, mode: .videoChat, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP]
         )
         try audioSession.setActive(true)
         try setPreferredInputDevice()
