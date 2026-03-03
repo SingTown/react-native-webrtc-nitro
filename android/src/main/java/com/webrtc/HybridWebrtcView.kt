@@ -4,6 +4,7 @@ import android.view.Surface
 import android.view.SurfaceView
 import android.view.SurfaceHolder
 import android.media.AudioFormat
+import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.media.AudioTrack
@@ -24,6 +25,17 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
     private var previousMode: Int? = null
     private var previousSpeakerphoneOn: Boolean? = null
     private var communicationRouteApplied = false
+    private var communicationModeApplied = false
+    private var audioDeviceCallbackRegistered = false
+    private val audioDeviceCallback = object : AudioDeviceCallback() {
+        override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
+            view.post { refreshAudioRouteIfNeeded() }
+        }
+
+        override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) {
+            view.post { refreshAudioRouteIfNeeded() }
+        }
+    }
 
     companion object {
         private var audioTrack = AudioTrack(
@@ -71,6 +83,8 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
 
 
     init {
+        audioManager.registerAudioDeviceCallback(audioDeviceCallback, null)
+        audioDeviceCallbackRegistered = true
         view.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
                 updateVideoPipeId(_videoPipeId, holder.surface)
@@ -112,6 +126,10 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
         }
 
     override fun dispose() {
+        if (audioDeviceCallbackRegistered) {
+            audioManager.unregisterAudioDeviceCallback(audioDeviceCallback)
+            audioDeviceCallbackRegistered = false
+        }
         if (this.audioSubscriptionId > 0) {
             this.unsubscribe(this.audioSubscriptionId)
             this.audioSubscriptionId = -1
@@ -127,12 +145,7 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
         }
         previousMode = audioManager.mode
         previousSpeakerphoneOn = audioManager.isSpeakerphoneOn
-        audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
-        @Suppress("DEPRECATION")
-        run {
-            audioManager.isSpeakerphoneOn = false
-        }
-        routeAudioTrackToPreferredOutput()
+        applyRouteForCurrentDevices()
         communicationRouteApplied = true
     }
 
@@ -141,19 +154,42 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
             return
         }
         audioTrack.setPreferredDevice(null)
-        previousSpeakerphoneOn?.let { audioManager.isSpeakerphoneOn = it }
-        previousMode?.let { audioManager.mode = it }
+        if (communicationModeApplied) {
+            previousSpeakerphoneOn?.let { audioManager.isSpeakerphoneOn = it }
+            previousMode?.let { audioManager.mode = it }
+        }
         previousSpeakerphoneOn = null
         previousMode = null
+        communicationModeApplied = false
         communicationRouteApplied = false
     }
 
-    private fun routeAudioTrackToPreferredOutput() {
-        val target = selectPreferredOutputDevice()
-        if (target != null) {
-            audioTrack.setPreferredDevice(target)
+    private fun refreshAudioRouteIfNeeded() {
+        if (!communicationRouteApplied || audioSubscriptionId <= 0 || _audioPipeId.isNullOrEmpty()) {
+            return
+        }
+        applyRouteForCurrentDevices()
+    }
+
+    private fun applyRouteForCurrentDevices() {
+        val targetOutput = selectPreferredOutputDevice()
+        if (targetOutput != null) {
+            audioTrack.setPreferredDevice(targetOutput)
+            if (communicationModeApplied) {
+                previousSpeakerphoneOn?.let { audioManager.isSpeakerphoneOn = it }
+                previousMode?.let { audioManager.mode = it }
+                communicationModeApplied = false
+            }
         } else {
             audioTrack.setPreferredDevice(null)
+            if (!communicationModeApplied) {
+                audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+                @Suppress("DEPRECATION")
+                run {
+                    audioManager.isSpeakerphoneOn = false
+                }
+                communicationModeApplied = true
+            }
         }
     }
 
