@@ -1,3 +1,11 @@
+## [1.8.1](https://github.com/SingTown/react-native-webrtc-nitro/compare/v1.8.0...v1.8.1) (2026-03-03)
+
+### 🐛 Bug Fixes
+
+* **android:** audio reroute on device change ([#79](https://github.com/SingTown/react-native-webrtc-nitro/issues/79)) ([b46c2a2](https://github.com/SingTown/react-native-webrtc-nitro/commit/b46c2a270339d717e422c631dd9bebaa357b202f))
+* **android:** auto-restart Oboe microphone stream on input error ([#71](https://github.com/SingTown/react-native-webrtc-nitro/issues/71)) ([5a93092](https://github.com/SingTown/react-native-webrtc-nitro/commit/5a93092a5da5a51bbdcdd43903949c3ca300fa6f))
+* **ios:** reapply preferred output device when audio devices change ([#80](https://github.com/SingTown/react-native-webrtc-nitro/issues/80)) ([ca9056a](https://github.com/SingTown/react-native-webrtc-nitro/commit/ca9056a6a66435209c741cf65e85e4a513ca424b))
+
 ## [1.8.0](https://github.com/SingTown/react-native-webrtc-nitro/compare/v1.7.0...v1.8.0) (2026-02-27)
 
 ### ✨ Features
