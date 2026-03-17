@@ -65,6 +65,10 @@ namespace rtc
                 if (nackResendTimes >= nackResendTimesMax)
                 {
                     clearBuffer ();
+                    if (onPacketLost)
+                    {
+                        onPacketLost ();
+                    }
                     break;
                 }
 

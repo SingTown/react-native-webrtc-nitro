@@ -1,6 +1,7 @@
 #ifndef RTC_RTCP_JITTER_REQUESTER_H
 #define RTC_RTCP_JITTER_REQUESTER_H
 
+#include <functional>
 #include <queue>
 #include <rtc/rtc.hpp>
 
@@ -14,6 +15,7 @@ namespace rtc
                            size_t nackResendIntervalMs = 10,
                            size_t nackResendTimesMax = 10);
         SSRC ssrc;
+        std::function<void()> onPacketLost;
         void incoming (message_vector &messages,
                        const message_callback &send) override;
 

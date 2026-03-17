@@ -231,6 +231,12 @@ void HybridRTCRtpTransceiver::receiverOnOpen ()
     auto nackRequester = std::make_shared<rtc::RtcpNackRequester> (ssrc);
     auto rtcpSession = std::make_shared<rtc::RtcpReceivingSession> ();
 
+    auto droppingUntilKeyframe = std::make_shared<std::atomic<bool>> (false);
+    nackRequester->onPacketLost = [droppingUntilKeyframe] ()
+    {
+        droppingUntilKeyframe->store (true);
+    };
+
     if (rtpMap->format == "H265")
     {
         auto depacketizer
@@ -268,7 +274,7 @@ void HybridRTCRtpTransceiver::receiverOnOpen ()
     std::string pipeId
         = hybridRtcRtpReceiver->mediaStreamTrack->get_srcPipeId ();
     track->onFrame (
-        [decoder, pipeId] (const rtc::binary &binary, rtc::FrameInfo info)
+        [decoder, pipeId, droppingUntilKeyframe] (const rtc::binary &binary, rtc::FrameInfo info)
         {
             if (binary.size () == 0)
             {
@@ -285,6 +291,17 @@ void HybridRTCRtpTransceiver::receiverOnOpen ()
             auto frames = decoder->receive ();
             for (auto &frame : frames)
             {
+                if (droppingUntilKeyframe->load ())
+                {
+                    if (frame->flags & AV_FRAME_FLAG_KEY)
+                    {
+                        droppingUntilKeyframe->store (false);
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
                 publish (pipeId, frame);
             }
         });
