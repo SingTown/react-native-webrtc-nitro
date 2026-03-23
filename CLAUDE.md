@@ -1,0 +1,121 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+React Native WebRTC library built on the **Nitro Modules** framework. Provides high-performance WebRTC capabilities (audio/video calls, data channels, media recording) via native C++, Swift, and Kotlin implementations with a TypeScript API surface.
+
+## Common Commands
+
+### Build & Typecheck
+```bash
+pnpm run build          # Typecheck + bob build (generates lib/)
+pnpm run typecheck      # TypeScript type checking only
+pnpm run codegen        # Run Nitrogen codegen → build → post-script
+```
+
+### Lint
+```bash
+pnpm run lint           # C++ formatting check (clang-format, GNU style)
+```
+
+### C++ Tests
+```bash
+cd cpp/__tests__ && mkdir -p build && cd build && cmake .. && make && ./testcpp --gtest_output=xml
+```
+
+### Example App
+```bash
+cd example && pnpm install
+cd example/ios && pod install    # iOS
+cd example/android && ./gradlew assembleDebug  # Android
+```
+
+### 3rd-Party Native Libraries
+Pre-built binaries are in `3rdparty/output/`. To rebuild from source:
+```bash
+cd 3rdparty && ./download.sh
+./build_ffmpeg_ios.sh && ./build_ffmpeg_android.sh
+./build_libdatachannel_ios.sh && ./build_libdatachannel_android.sh
+```
+
+## Architecture
+
+### Three-Layer Design
+
+1. **TypeScript API** (`src/`): Nitro spec files (`.nitro.ts`) define the public interface. Each spec declares a `HybridObject` with platform dispatch (`ios: 'swift'|'c++', android: 'kotlin'|'c++'`). Exported via `src/index.ts`.
+
+2. **C++ Core** (`cpp/`): Shared cross-platform logic. `Hybrid*.cpp` files implement WebRTC (via libdatachannel), media processing (via FFmpeg), and the frame pipeline. This layer handles RTCPeerConnection, MediaStream, MediaDevices, MediaRecorder, and RTP transceiver management.
+
+3. **Platform Native** (`ios/`, `android/`): Swift and Kotlin implementations for hardware-specific features — camera capture, microphone (Oboe audio engine), permissions, and video rendering views.
+
+### Nitro Module Pattern
+
+- Specs in `src/specs/*.nitro.ts` define the TypeScript-to-native contract
+- `nitro.json` maps each module name to its native implementation (C++, Swift, or Kotlin)
+- Running `pnpm run codegen` (Nitrogen) auto-generates bridge code into `nitrogen/generated/`
+- Platform dispatch: camera/microphone/permissions/view → Swift/Kotlin; everything else → C++
+
+### Native Dependencies
+
+- **libdatachannel**: WebRTC data channels and peer connections
+- **FFmpeg** (libavformat, libavcodec, libswscale, libswresample, libavutil): Video/audio encoding/decoding/muxing
+- **Opus**: Audio codec
+- **Oboe**: Low-latency audio engine (both iOS and Android)
+
+### Key C++ Components
+
+- `HybridRTCPeerConnection`: WebRTC session management (offer/answer, ICE, transceivers)
+- `FramePipe`: Publisher-subscriber video frame pipeline
+- `cpp/FFmpeg/`: Encoder, Decoder, Muxer, AudioFifo wrappers
+
+## Code Style
+
+- **TypeScript**: Single quotes, 2-space indent, trailing commas (ES5), no semicolons (Prettier)
+- **C++**: GNU style via `.clang-format` — 4-space indent, Allman braces
+- **Commits**: Conventional Commits (`feat:`, `fix:`, `perf:`, `refactor:`, `chore:`, `docs:`)
+
+## Folder Structure
+
+```
+├── src/                    # TypeScript API layer
+│   ├── specs/              # Nitro module specs (.nitro.ts)
+│   ├── views/              # WebrtcView component
+│   └── index.ts            # Barrel exports
+├── cpp/                    # C++ cross-platform core
+│   ├── Hybrid/             # HybridObject implementations (16 files)
+│   ├── FFmpeg/             # FFmpeg C++ wrappers (Encoder, Decoder, Muxer, etc.)
+│   ├── __tests__/          # GTest unit tests
+│   ├── FramePipe.cpp/hpp   # Video frame pipeline
+│   └── Mock*.hpp           # Mock camera/microphone for testing
+├── ios/                    # iOS Swift implementations
+│   ├── HybridCamera.swift
+│   ├── HybridMicrophone.swift
+│   ├── HybridPermissions.swift
+│   ├── HybridWebrtcView.swift
+│   └── FramePipeWrapper.mm # C++ interop
+├── android/
+│   ├── src/main/java/com/webrtc/  # Kotlin implementations
+│   └── src/main/cpp/              # JNI adapter + Oboe microphone
+├── nitrogen/generated/     # Auto-generated Nitro bridge code (do not edit)
+├── 3rdparty/
+│   ├── repo/
+│   │   ├── ffmpeg/         # Audio/video encoding/decoding/muxing
+│   │   ├── libdatachannel/ # WebRTC data channels and peer connections
+│   │   ├── opus/           # Audio codec
+│   │   ├── x264/           # H.264 video encoder
+│   │   ├── fdk-aac/        # AAC audio codec
+│   │   ├── libnice/        # ICE protocol implementation
+│   │   └── mbedtls/        # TLS/SSL library
+│   ├── output/             # Pre-built binaries (xcframework, .so)
+│   └── build_*.sh          # Build scripts for native deps
+├── example/                # React Native example app
+├── lib/                    # Compiled JS/TS output (generated by bob)
+├── nitro.json              # Nitro module configuration
+└── Webrtc.podspec          # iOS CocoaPods spec
+```
+
+## Monorepo Structure
+
+pnpm workspace with `example/` as a sub-package. The root package publishes to npm; the example app consumes it directly for development.
