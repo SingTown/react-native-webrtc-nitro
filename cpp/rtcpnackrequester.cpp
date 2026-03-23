@@ -2,10 +2,11 @@
 
 namespace rtc
 {
-    RtcpNackRequester::RtcpNackRequester (SSRC ssrc, size_t jitterSize,
+    RtcpNackRequester::RtcpNackRequester (SSRC ssrc, AVCodecID codec,
+                                          size_t jitterSize,
                                           size_t nackResendIntervalMs,
                                           size_t nackResendTimesMax)
-        : ssrc (ssrc), jitterSize (jitterSize),
+        : ssrc (ssrc), codec (codec), jitterSize (jitterSize),
           nackResendIntervalMs (nackResendIntervalMs),
           nackResendTimesMax (nackResendTimesMax)
     {
@@ -81,6 +82,36 @@ namespace rtc
                 break;
             }
         }
+        if (droppingUntilKeyframe)
+        {
+            message_vector filtered;
+            for (auto &msg : result)
+            {
+                if (!droppingUntilKeyframe)
+                {
+                    filtered.push_back (msg);
+                    continue;
+                }
+                if (msg->type != Message::Binary
+                    || msg->size () < sizeof (RtpHeader))
+                {
+                    filtered.push_back (msg);
+                    continue;
+                }
+                auto rtp
+                    = reinterpret_cast<RtpHeader *> (msg->data ());
+                auto payload = reinterpret_cast<const std::byte *> (
+                    rtp->getBody ());
+                size_t payloadSize = msg->size () - rtp->getSize ();
+                if (payloadSize > 0
+                    && checkKeyframe (payload, payloadSize))
+                {
+                    droppingUntilKeyframe = false;
+                    filtered.push_back (msg);
+                }
+            }
+            result.swap (filtered);
+        }
         messages.swap (result);
     }
 
@@ -90,12 +121,53 @@ namespace rtc
         return (int16_t)(seq1 - seq2) >= 0;
     }
 
+    auto RtcpNackRequester::checkKeyframe (const std::byte *data,
+                                           size_t size) -> bool
+    {
+        if (codec == AV_CODEC_ID_H264)
+        {
+            if (size < 1)
+                return false;
+            uint8_t nalType = static_cast<uint8_t> (data[0]) & 0x1F;
+            if (nalType == 7 || nalType == 5)
+                return true; // SPS or IDR
+            if (nalType == 28 && size >= 2)
+            { // FU-A
+                bool startBit = static_cast<uint8_t> (data[1]) >> 7;
+                uint8_t fuNalType
+                    = static_cast<uint8_t> (data[1]) & 0x1F;
+                return startBit && fuNalType == 5;
+            }
+        }
+        else if (codec == AV_CODEC_ID_H265)
+        {
+            if (size < 2)
+                return false;
+            uint8_t nalType
+                = (static_cast<uint8_t> (data[0]) & 0x7E) >> 1;
+            if (nalType == 19 || nalType == 20)
+                return true; // IDR
+            if (nalType == 32)
+                return true; // VPS
+            if (nalType == 49 && size >= 3)
+            { // FU
+                bool startBit = static_cast<uint8_t> (data[2]) >> 7;
+                uint8_t fuNalType
+                    = static_cast<uint8_t> (data[2]) & 0x3F;
+                return startBit
+                       && (fuNalType == 19 || fuNalType == 20);
+            }
+        }
+        return false;
+    }
+
     void RtcpNackRequester::clearBuffer ()
     {
         initialized = false;
         jitterBuffer.clear ();
         nackResendTimes = 0;
         nextNackTime = std::chrono::steady_clock::now ();
+        droppingUntilKeyframe = true;
     }
 
     auto RtcpNackRequester::nackMessage (uint16_t sequence) -> message_ptr

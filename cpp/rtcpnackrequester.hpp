@@ -2,6 +2,7 @@
 #define RTC_RTCP_JITTER_REQUESTER_H
 
 #include <queue>
+#include <libavcodec/avcodec.h>
 #include <rtc/rtc.hpp>
 
 namespace rtc
@@ -10,7 +11,8 @@ namespace rtc
     class RTC_CPP_EXPORT RtcpNackRequester final : public MediaHandler
     {
       public:
-        RtcpNackRequester (SSRC ssrc, size_t jitterSize = 5,
+        RtcpNackRequester (SSRC ssrc, AVCodecID codec,
+                           size_t jitterSize = 5,
                            size_t nackResendIntervalMs = 10,
                            size_t nackResendTimesMax = 10);
         SSRC ssrc;
@@ -28,7 +30,11 @@ namespace rtc
         std::chrono::steady_clock::time_point nextNackTime
             = std::chrono::steady_clock::now ();
 
+        AVCodecID codec;
+        bool droppingUntilKeyframe = false;
         std::map<uint16_t, message_ptr> jitterBuffer;
+
+        auto checkKeyframe (const std::byte *data, size_t size) -> bool;
 
         auto isSeqNewerOrEqual (uint16_t seq1, uint16_t seq2) -> bool;
         void clearBuffer ();
