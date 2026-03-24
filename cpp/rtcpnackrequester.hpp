@@ -20,6 +20,7 @@ namespace rtc
                        const message_callback &send) override;
 
       private:
+        AVCodecID codec;
         size_t jitterSize;
         size_t nackResendIntervalMs;
         size_t nackResendTimesMax;
@@ -30,7 +31,6 @@ namespace rtc
         std::chrono::steady_clock::time_point nextNackTime
             = std::chrono::steady_clock::now ();
 
-        AVCodecID codec;
         bool droppingUntilKeyframe = false;
         std::map<uint16_t, message_ptr> jitterBuffer;
 
@@ -39,6 +39,7 @@ namespace rtc
         auto isSeqNewerOrEqual (uint16_t seq1, uint16_t seq2) -> bool;
         void clearBuffer ();
         auto nackMessage (uint16_t sequence) -> message_ptr;
+        auto pliMessage () -> message_ptr;
     };
 
 } // namespace rtc

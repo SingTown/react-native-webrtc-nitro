@@ -66,6 +66,7 @@ namespace rtc
                 if (nackResendTimes >= nackResendTimesMax)
                 {
                     clearBuffer ();
+                    send (pliMessage ());
                     break;
                 }
 
@@ -181,6 +182,15 @@ namespace rtc
         nack->preparePacket (ssrc, 1);
         nack->addMissingPacket (&fciCount, &fciPID, sequence);
 
+        return message;
+    }
+
+    auto RtcpNackRequester::pliMessage () -> message_ptr
+    {
+        message_ptr message
+            = make_message (RtcpPli::Size (), Message::Control);
+        auto *pli = reinterpret_cast<RtcpPli *> (message->data ());
+        pli->preparePacket (ssrc);
         return message;
     }
 
