@@ -1,3 +1,17 @@
+## [1.9.0](https://github.com/SingTown/react-native-webrtc-nitro/compare/v1.8.1...v1.9.0) (2026-03-24)
+
+### ✨ Features
+
+* **receiver:** send PLI on unrecoverable packet loss ([#84](https://github.com/SingTown/react-native-webrtc-nitro/issues/84)) ([f92547c](https://github.com/SingTown/react-native-webrtc-nitro/commit/f92547c2a79aa5db24ea662d77e12b46fc0fb81e))
+
+### 🐛 Bug Fixes
+
+* **receiver:** drop corrupted frames on packet loss until next keyframe ([#81](https://github.com/SingTown/react-native-webrtc-nitro/issues/81)) ([fd258ca](https://github.com/SingTown/react-native-webrtc-nitro/commit/fd258ca348ec8dd295123f46ba266eb9ecea9d6c))
+
+### 📚 Documentation
+
+* add CLAUDE.md for Claude Code guidance ([#82](https://github.com/SingTown/react-native-webrtc-nitro/issues/82)) ([21e7458](https://github.com/SingTown/react-native-webrtc-nitro/commit/21e7458d151a75d411cf274244abd7322fb62a40))
+
 ## [1.8.1](https://github.com/SingTown/react-native-webrtc-nitro/compare/v1.8.0...v1.8.1) (2026-03-03)
 
 ### 🐛 Bug Fixes
