@@ -39,6 +39,7 @@ namespace rtc
         auto isSeqNewerOrEqual (uint16_t seq1, uint16_t seq2) -> bool;
         void clearBuffer ();
         auto nackMessage (uint16_t sequence) -> message_ptr;
+        auto pliMessage () -> message_ptr;
     };
 
 } // namespace rtc
