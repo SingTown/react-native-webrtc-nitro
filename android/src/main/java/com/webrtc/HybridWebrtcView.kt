@@ -3,6 +3,7 @@ package com.webrtc
 import android.view.Surface
 import android.view.SurfaceView
 import android.view.SurfaceHolder
+import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
@@ -22,10 +23,7 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
 
     private val audioManager: AudioManager =
         context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-    private var previousMode: Int? = null
-    private var previousSpeakerphoneOn: Boolean? = null
-    private var communicationRouteApplied = false
-    private var communicationModeApplied = false
+    private var audioRouteApplied = false
     private var audioDeviceCallbackRegistered = false
     private val audioDeviceCallback = object : AudioDeviceCallback() {
         override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
@@ -38,18 +36,29 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
     }
 
     companion object {
-        private var audioTrack = AudioTrack(
-            AudioManager.STREAM_VOICE_CALL,
-            48000,
-            AudioFormat.CHANNEL_OUT_STEREO,
-            AudioFormat.ENCODING_PCM_16BIT,
-            AudioTrack.getMinBufferSize(
-                48000,
-                AudioFormat.CHANNEL_OUT_STEREO,
-                AudioFormat.ENCODING_PCM_16BIT
-            ) * 4,
-            AudioTrack.MODE_STREAM
-        )
+        private var audioTrack = AudioTrack.Builder()
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+            )
+            .setAudioFormat(
+                AudioFormat.Builder()
+                    .setSampleRate(48000)
+                    .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
+                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                    .build()
+            )
+            .setBufferSizeInBytes(
+                AudioTrack.getMinBufferSize(
+                    48000,
+                    AudioFormat.CHANNEL_OUT_STEREO,
+                    AudioFormat.ENCODING_PCM_16BIT
+                ) * 4
+            )
+            .setTransferMode(AudioTrack.MODE_STREAM)
+            .build()
     }
 
     external fun unsubscribe(subscriptionId: Int)
@@ -75,7 +84,7 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
                 restoreAudioRoute()
                 return;
             }
-            applyCommunicationAudioRoute()
+            applyAudioRoute()
             this.audioSubscriptionId = subscribeAudio(value, audioTrack)
             this._audioPipeId = value
             audioTrack.play()
@@ -139,58 +148,29 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
         restoreAudioRoute()
     }
 
-    private fun applyCommunicationAudioRoute() {
-        if (communicationRouteApplied) {
+    private fun applyAudioRoute() {
+        if (audioRouteApplied) {
             return
         }
-        previousMode = audioManager.mode
-        previousSpeakerphoneOn = audioManager.isSpeakerphoneOn
-        applyRouteForCurrentDevices()
-        communicationRouteApplied = true
+        val targetOutput = selectPreferredOutputDevice()
+        audioTrack.setPreferredDevice(targetOutput)
+        audioRouteApplied = true
     }
 
     private fun restoreAudioRoute() {
-        if (!communicationRouteApplied) {
+        if (!audioRouteApplied) {
             return
         }
         audioTrack.setPreferredDevice(null)
-        if (communicationModeApplied) {
-            previousSpeakerphoneOn?.let { audioManager.isSpeakerphoneOn = it }
-            previousMode?.let { audioManager.mode = it }
-        }
-        previousSpeakerphoneOn = null
-        previousMode = null
-        communicationModeApplied = false
-        communicationRouteApplied = false
+        audioRouteApplied = false
     }
 
     private fun refreshAudioRouteIfNeeded() {
-        if (!communicationRouteApplied || audioSubscriptionId <= 0 || _audioPipeId.isNullOrEmpty()) {
+        if (!audioRouteApplied || audioSubscriptionId <= 0 || _audioPipeId.isNullOrEmpty()) {
             return
         }
-        applyRouteForCurrentDevices()
-    }
-
-    private fun applyRouteForCurrentDevices() {
         val targetOutput = selectPreferredOutputDevice()
-        if (targetOutput != null) {
-            audioTrack.setPreferredDevice(targetOutput)
-            if (communicationModeApplied) {
-                previousSpeakerphoneOn?.let { audioManager.isSpeakerphoneOn = it }
-                previousMode?.let { audioManager.mode = it }
-                communicationModeApplied = false
-            }
-        } else {
-            audioTrack.setPreferredDevice(null)
-            if (!communicationModeApplied) {
-                audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
-                @Suppress("DEPRECATION")
-                run {
-                    audioManager.isSpeakerphoneOn = false
-                }
-                communicationModeApplied = true
-            }
-        }
+        audioTrack.setPreferredDevice(targetOutput)
     }
 
     private fun selectPreferredOutputDevice(): AudioDeviceInfo? {
