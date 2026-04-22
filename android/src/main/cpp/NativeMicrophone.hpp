@@ -28,5 +28,7 @@ class NativeMicrophone : public oboe::AudioStreamDataCallback,
     std::shared_ptr<oboe::AudioStream> stream_;
     std::string pipeId_;
     float smoothedGain_ = 1.0f;
+    float noiseFloor_ = 180.0f;
+    bool noiseGateOpen_ = false;
     std::atomic<bool> restartInProgress_ { false };
 };

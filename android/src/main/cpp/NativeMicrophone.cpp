@@ -2,7 +2,6 @@
 
 #include "FFmpeg.hpp"
 #include "FramePipe.hpp"
-#include <android/log.h>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -14,11 +13,23 @@ namespace
     constexpr float kAttack = 0.12f;
     constexpr float kRelease = 0.06f;
     constexpr float kLimiterPeak = 26000.0f;
-    constexpr float kFarRmsThreshold = 420.0f;
     constexpr float kFarMaxGain = 16.0f;
     constexpr float kNearMaxGain = 6.0f;
-    constexpr float kNoiseGateRms = 120.0f;
-    constexpr float kNoiseGateMaxGain = 8.0f;
+    constexpr float kNoiseGateMaxGain = 1.0f;
+    constexpr float kAgcMinGain = 1.0f;
+    constexpr float kInitialNoiseFloorRms = 180.0f;
+    constexpr float kNoiseFloorMinRms = 80.0f;
+    constexpr float kNoiseFloorMaxRms = 320.0f;
+    constexpr float kNoiseFloorTrackRatio = 3.0f;
+    constexpr float kNoiseFloorRise = 0.02f;
+    constexpr float kNoiseFloorFall = 0.12f;
+    constexpr float kNoiseGateOpenRatio = 2.2f;
+    constexpr float kNoiseGateCloseRatio = 1.8f;
+    constexpr float kNoiseGateMinRms = 180.0f;
+    constexpr float kNoiseGateMaxRms = 600.0f;
+    constexpr float kFarThresholdRatio = 3.5f;
+    constexpr float kFarThresholdMinRms = 320.0f;
+    constexpr float kFarThresholdMaxRms = 1000.0f;
 }
 
 NativeMicrophone::~NativeMicrophone () { stop (); }
@@ -41,6 +52,8 @@ auto NativeMicrophone::start (const std::string &pipeId) -> bool
 
     pipeId_ = pipeId;
     smoothedGain_ = 1.0f;
+    noiseFloor_ = kInitialNoiseFloorRms;
+    noiseGateOpen_ = false;
     restartInProgress_.store (false);
     return openAndStartStreamLocked ();
 }
@@ -52,6 +65,8 @@ void NativeMicrophone::stop ()
         std::lock_guard<std::mutex> lock (mutex_);
         pipeId_.clear ();
         smoothedGain_ = 1.0f;
+        noiseFloor_ = kInitialNoiseFloorRms;
+        noiseGateOpen_ = false;
         restartInProgress_.store (false);
         streamToClose = std::move (stream_);
     }
@@ -90,12 +105,41 @@ auto NativeMicrophone::onAudioReady (oboe::AudioStream *audioStream,
     }
     const float rms
         = std::sqrt (sumSquares / static_cast<float> (sampleCount));
+    if (rms < noiseFloor_ * kNoiseFloorTrackRatio)
+    {
+        const float tracking = rms > noiseFloor_ ? kNoiseFloorRise : kNoiseFloorFall;
+        noiseFloor_ += (rms - noiseFloor_) * tracking;
+        noiseFloor_
+            = std::clamp (noiseFloor_, kNoiseFloorMinRms, kNoiseFloorMaxRms);
+    }
+
+    const float noiseGateOpenRms
+        = std::clamp (noiseFloor_ * kNoiseGateOpenRatio, kNoiseGateMinRms,
+                      kNoiseGateMaxRms);
+    const float noiseGateCloseRms
+        = std::clamp (noiseFloor_ * kNoiseGateCloseRatio, kNoiseGateMinRms,
+                      kNoiseGateMaxRms);
+    if (noiseGateOpen_)
+    {
+        if (rms < noiseGateCloseRms)
+        {
+            noiseGateOpen_ = false;
+        }
+    }
+    else if (rms > noiseGateOpenRms)
+    {
+        noiseGateOpen_ = true;
+    }
+
+    const float farRmsThreshold
+        = std::clamp (noiseFloor_ * kFarThresholdRatio, kFarThresholdMinRms,
+                      kFarThresholdMaxRms);
     float desiredGain = 6000.0f / std::max (rms, 1.0f);
     const float dynamicMaxGain
-        = rms < kFarRmsThreshold ? kFarMaxGain : kNearMaxGain;
+        = rms < farRmsThreshold ? kFarMaxGain : kNearMaxGain;
     desiredGain
-        = std::clamp (desiredGain, 1.2f, dynamicMaxGain);
-    if (rms < kNoiseGateRms)
+        = std::clamp (desiredGain, kAgcMinGain, dynamicMaxGain);
+    if (!noiseGateOpen_)
     {
         desiredGain = std::min (desiredGain, kNoiseGateMaxGain);
     }
