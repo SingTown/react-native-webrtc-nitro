@@ -197,7 +197,7 @@ export default function Camera() {
             if (!recording) {
               return;
             }
-            recording.stopRecording();
+            await recording.stopRecording();
             await CameraRoll.save(mp4path, { type: 'video' });
             console.log('Saved recording to camera roll');
             setRecording(null);

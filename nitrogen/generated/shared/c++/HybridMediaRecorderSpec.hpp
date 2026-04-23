@@ -55,7 +55,7 @@ namespace margelo::nitro::webrtc {
       // Methods
       virtual std::shared_ptr<Promise<void>> takePhoto(const std::string& file) = 0;
       virtual void startRecording(const std::string& file) = 0;
-      virtual void stopRecording() = 0;
+      virtual std::shared_ptr<Promise<void>> stopRecording() = 0;
 
     protected:
       // Hybrid Setup
