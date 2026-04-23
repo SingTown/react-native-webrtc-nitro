@@ -1,5 +1,6 @@
 #include "HybridMediaRecorder.hpp"
 #include "FramePipe.hpp"
+#include <atomic>
 #include <filesystem>
 
 using namespace margelo::nitro::webrtc;
@@ -25,12 +26,14 @@ auto HybridMediaRecorder::takePhoto (const std::string &file)
     }
     std::string srcPipeId = tracks[0]->get_srcPipeId ();
     return Promise<void>::async (
-        [this, srcPipeId, file] () -> void
+        [srcPipeId, file] () -> void
         {
             auto encoder = std::make_shared<FFmpeg::Encoder> (AV_CODEC_ID_PNG);
+            auto photoSubscriptionId = std::make_shared<std::atomic<int>> (-1);
             FrameCallback callback =
-                [this, encoder, file] (const std::string &, int subscriptionId,
-                                       const FFmpeg::Frame &frame)
+                [encoder, file, photoSubscriptionId] (
+                    const std::string &, int subscriptionId,
+                    const FFmpeg::Frame &frame)
             {
                 FILE *f = fopen (file.c_str (), "wb");
                 if (!f)
@@ -46,14 +49,15 @@ auto HybridMediaRecorder::takePhoto (const std::string &file)
                 }
                 fclose (f);
                 ::unsubscribe (subscriptionId);
-                this->subscriptionId = -1;
+                photoSubscriptionId->store (-1, std::memory_order_release);
             };
 
-            this->subscriptionId
-                = subscribe ({ srcPipeId }, callback, nullptr);
+            photoSubscriptionId->store (
+                subscribe ({ srcPipeId }, callback, nullptr),
+                std::memory_order_release);
 
             // wait for the callback to be called
-            while (this->subscriptionId != -1)
+            while (photoSubscriptionId->load (std::memory_order_acquire) != -1)
             {
                 std::this_thread::sleep_for (std::chrono::milliseconds (10));
             }
@@ -72,6 +76,15 @@ void HybridMediaRecorder::startRecording (const std::string &file)
     {
         throw std::invalid_argument ("Only .mp4 format is supported c++");
     }
+    if (recordingSubscriptionId != -1)
+    {
+        unsubscribe (recordingSubscriptionId);
+        recordingSubscriptionId = -1;
+    }
+    stopPromise = nullptr;
+    stopError = nullptr;
+    stopCompleted = false;
+
     AVCodecID audioCodecId = AV_CODEC_ID_NONE;
     AVCodecID videoCodecId = AV_CODEC_ID_NONE;
     std::string audioPipeId = "";
@@ -106,13 +119,85 @@ void HybridMediaRecorder::startRecording (const std::string &file)
         }
     };
 
-    CleanupCallback cleanup = [muxer] (int) { muxer->stop (); };
+    CleanupCallback cleanup = [this, muxer] (int)
+    {
+        try
+        {
+            muxer->stop ();
+        }
+        catch (...)
+        {
+            std::lock_guard lock (recordingMutex);
+            stopError = std::current_exception ();
+        }
 
-    subscriptionId = subscribe (pipeIds, callback, cleanup);
+        std::shared_ptr<Promise<void>> promise;
+        std::exception_ptr error;
+        {
+            std::lock_guard lock (recordingMutex);
+            stopCompleted = true;
+            promise = stopPromise;
+            error = stopError;
+        }
+        if (promise != nullptr)
+        {
+            if (error != nullptr)
+            {
+                promise->reject (error);
+            }
+            else
+            {
+                promise->resolve ();
+            }
+        }
+    };
+
+    recordingSubscriptionId = subscribe (pipeIds, callback, cleanup);
 }
 
-void HybridMediaRecorder::stopRecording ()
+auto HybridMediaRecorder::stopRecording () -> std::shared_ptr<Promise<void>>
 {
+    if (recordingSubscriptionId == -1)
+    {
+        auto promise = Promise<void>::create ();
+        promise->resolve ();
+        return promise;
+    }
+
+    std::shared_ptr<Promise<void>> promise;
+    bool completed = false;
+    std::exception_ptr error;
+    int subscriptionId = -1;
+    {
+        std::lock_guard lock (recordingMutex);
+        if (stopPromise == nullptr)
+        {
+            stopPromise = Promise<void>::create ();
+        }
+        promise = stopPromise;
+        completed = stopCompleted;
+        error = stopError;
+        subscriptionId = recordingSubscriptionId;
+    }
+
+    if (completed)
+    {
+        if (error != nullptr)
+        {
+            promise->reject (error);
+        }
+        else
+        {
+            promise->resolve ();
+        }
+        return promise;
+    }
+
     unsubscribe (subscriptionId);
-    subscriptionId = -1;
+
+    {
+        std::lock_guard lock (recordingMutex);
+        recordingSubscriptionId = -1;
+    }
+    return promise;
 }

@@ -303,8 +303,9 @@ recorder.startRecording(videoPath);
 
 // Stop recording after some time
 setTimeout(() => {
-  recorder.stopRecording();
-  console.log('Video saved to:', videoPath);
+  void recorder.stopRecording().then(() => {
+    console.log('Video saved to:', videoPath);
+  });
 }, 10000);
 ```
 
@@ -476,7 +477,7 @@ const videoPath = `${RNFS.DocumentDirectoryPath}/video.mp4`;
 recorder.startRecording(videoPath);
 
 // Stop recording
-recorder.stopRecording();
+await recorder.stopRecording();
 ```
 
 ## 🏗️ Architecture
