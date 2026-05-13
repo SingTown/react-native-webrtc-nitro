@@ -28,8 +28,11 @@
 #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
 #endif
 
+// Forward declaration of `AudioConstraints` to properly resolve imports.
+namespace margelo::nitro::webrtc { struct AudioConstraints; }
 
-
+#include "AudioConstraints.hpp"
+#include <variant>
 #include <optional>
 
 namespace margelo::nitro::webrtc {
@@ -39,12 +42,12 @@ namespace margelo::nitro::webrtc {
    */
   struct MediaStreamConstraints final {
   public:
-    std::optional<bool> audio     SWIFT_PRIVATE;
+    std::optional<std::variant<bool, AudioConstraints>> audio     SWIFT_PRIVATE;
     std::optional<bool> video     SWIFT_PRIVATE;
 
   public:
     MediaStreamConstraints() = default;
-    explicit MediaStreamConstraints(std::optional<bool> audio, std::optional<bool> video): audio(audio), video(video) {}
+    explicit MediaStreamConstraints(std::optional<std::variant<bool, AudioConstraints>> audio, std::optional<bool> video): audio(audio), video(video) {}
 
   public:
     friend bool operator==(const MediaStreamConstraints& lhs, const MediaStreamConstraints& rhs) = default;
@@ -60,13 +63,13 @@ namespace margelo::nitro {
     static inline margelo::nitro::webrtc::MediaStreamConstraints fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       jsi::Object obj = arg.asObject(runtime);
       return margelo::nitro::webrtc::MediaStreamConstraints(
-        JSIConverter<std::optional<bool>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "audio"))),
+        JSIConverter<std::optional<std::variant<bool, margelo::nitro::webrtc::AudioConstraints>>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "audio"))),
         JSIConverter<std::optional<bool>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "video")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::webrtc::MediaStreamConstraints& arg) {
       jsi::Object obj(runtime);
-      obj.setProperty(runtime, PropNameIDCache::get(runtime, "audio"), JSIConverter<std::optional<bool>>::toJSI(runtime, arg.audio));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "audio"), JSIConverter<std::optional<std::variant<bool, margelo::nitro::webrtc::AudioConstraints>>>::toJSI(runtime, arg.audio));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "video"), JSIConverter<std::optional<bool>>::toJSI(runtime, arg.video));
       return obj;
     }
@@ -78,7 +81,7 @@ namespace margelo::nitro {
       if (!nitro::isPlainObject(runtime, obj)) {
         return false;
       }
-      if (!JSIConverter<std::optional<bool>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "audio")))) return false;
+      if (!JSIConverter<std::optional<std::variant<bool, margelo::nitro::webrtc::AudioConstraints>>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "audio")))) return false;
       if (!JSIConverter<std::optional<bool>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "video")))) return false;
       return true;
     }

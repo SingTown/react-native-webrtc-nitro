@@ -54,7 +54,7 @@ namespace margelo::nitro::webrtc {
 
   public:
     // Methods
-    std::shared_ptr<Promise<void>> open(const std::string& pipeId) override;
+    std::shared_ptr<Promise<void>> open(const std::string& pipeId, const std::optional<MicrophoneAndroidTuning>& tuning) override;
 
   private:
     friend HybridBase;

@@ -13,8 +13,6 @@ namespace
     constexpr float kAttack = 0.12f;
     constexpr float kRelease = 0.06f;
     constexpr float kLimiterPeak = 26000.0f;
-    constexpr float kFarMaxGain = 16.0f;
-    constexpr float kNearMaxGain = 6.0f;
     constexpr float kNoiseGateMaxGain = 1.0f;
     constexpr float kAgcMinGain = 1.0f;
     constexpr float kInitialNoiseFloorRms = 180.0f;
@@ -23,19 +21,58 @@ namespace
     constexpr float kNoiseFloorTrackRatio = 3.0f;
     constexpr float kNoiseFloorRise = 0.02f;
     constexpr float kNoiseFloorFall = 0.12f;
-    constexpr float kNoiseGateOpenRatio = 2.2f;
     constexpr float kNoiseGateCloseRatio = 1.8f;
     constexpr float kNoiseGateMinRms = 180.0f;
     constexpr float kNoiseGateMaxRms = 600.0f;
-    constexpr float kFarThresholdRatio = 3.5f;
     constexpr float kFarThresholdMinRms = 320.0f;
     constexpr float kFarThresholdMaxRms = 1000.0f;
-    constexpr float kTargetRmsLevel = 6000.0f;
+    constexpr float kAgcTargetRmsMin = 1000.0f;
+    constexpr float kAgcTargetRmsMax = 12000.0f;
+    constexpr float kNearMaxGainMin = 1.0f;
+    constexpr float kNearMaxGainMax = 12.0f;
+    constexpr float kFarMaxGainMax = 24.0f;
+    constexpr float kNoiseGateOpenRatioMin = kNoiseGateCloseRatio + 0.2f;
+    constexpr float kNoiseGateOpenRatioMax = 4.0f;
+    constexpr float kFarThresholdRatioMin = 2.0f;
+    constexpr float kFarThresholdRatioMax = 6.0f;
+
+    auto clampFinite (float value, float fallback, float min, float max) -> float
+    {
+        if (!std::isfinite (value))
+        {
+            value = fallback;
+        }
+        return std::clamp (value, min, max);
+    }
+
+    auto sanitizeTuning (const NativeMicrophone::Tuning &tuning)
+        -> NativeMicrophone::Tuning
+    {
+        NativeMicrophone::Tuning sanitized;
+        sanitized.agcTargetRms
+            = clampFinite (tuning.agcTargetRms, sanitized.agcTargetRms,
+                           kAgcTargetRmsMin, kAgcTargetRmsMax);
+        sanitized.nearMaxGain
+            = clampFinite (tuning.nearMaxGain, sanitized.nearMaxGain,
+                           kNearMaxGainMin, kNearMaxGainMax);
+        sanitized.farMaxGain
+            = clampFinite (tuning.farMaxGain, sanitized.farMaxGain,
+                           sanitized.nearMaxGain, kFarMaxGainMax);
+        sanitized.noiseGateOpenRatio
+            = clampFinite (tuning.noiseGateOpenRatio,
+                           sanitized.noiseGateOpenRatio,
+                           kNoiseGateOpenRatioMin, kNoiseGateOpenRatioMax);
+        sanitized.farThresholdRatio
+            = clampFinite (tuning.farThresholdRatio, sanitized.farThresholdRatio,
+                           kFarThresholdRatioMin, kFarThresholdRatioMax);
+        return sanitized;
+    }
 }
 
 NativeMicrophone::~NativeMicrophone () { stop (); }
 
-auto NativeMicrophone::start (const std::string &pipeId) -> bool
+auto NativeMicrophone::start (const std::string &pipeId, const Tuning &tuning)
+    -> bool
 {
     std::lock_guard<std::mutex> lock (mutex_);
 
@@ -52,6 +89,7 @@ auto NativeMicrophone::start (const std::string &pipeId) -> bool
     }
 
     pipeId_ = pipeId;
+    tuning_ = sanitizeTuning (tuning);
     smoothedGain_ = 1.0f;
     noiseFloor_ = kInitialNoiseFloorRms;
     noiseGateOpen_ = false;
@@ -115,8 +153,8 @@ auto NativeMicrophone::onAudioReady (oboe::AudioStream *audioStream,
     }
 
     const float noiseGateOpenRms
-        = std::clamp (noiseFloor_ * kNoiseGateOpenRatio, kNoiseGateMinRms,
-                      kNoiseGateMaxRms);
+        = std::clamp (noiseFloor_ * tuning_.noiseGateOpenRatio,
+                      kNoiseGateMinRms, kNoiseGateMaxRms);
     const float noiseGateCloseRms
         = std::clamp (noiseFloor_ * kNoiseGateCloseRatio, kNoiseGateMinRms,
                       kNoiseGateMaxRms);
@@ -133,13 +171,12 @@ auto NativeMicrophone::onAudioReady (oboe::AudioStream *audioStream,
     }
 
     const float farRmsThreshold
-        = std::clamp (noiseFloor_ * kFarThresholdRatio, kFarThresholdMinRms,
-                      kFarThresholdMaxRms);
-    float desiredGain = kTargetRmsLevel / std::max (rms, 1.0f);
+        = std::clamp (noiseFloor_ * tuning_.farThresholdRatio,
+                      kFarThresholdMinRms, kFarThresholdMaxRms);
+    float desiredGain = tuning_.agcTargetRms / std::max (rms, 1.0f);
     const float dynamicMaxGain
-        = rms < farRmsThreshold ? kFarMaxGain : kNearMaxGain;
-    desiredGain
-        = std::clamp (desiredGain, kAgcMinGain, dynamicMaxGain);
+        = rms < farRmsThreshold ? tuning_.farMaxGain : tuning_.nearMaxGain;
+    desiredGain = std::clamp (desiredGain, kAgcMinGain, dynamicMaxGain);
     if (!noiseGateOpen_)
     {
         desiredGain = std::min (desiredGain, kNoiseGateMaxGain);

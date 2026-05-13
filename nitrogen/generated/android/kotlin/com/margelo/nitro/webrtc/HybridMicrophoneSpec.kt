@@ -48,7 +48,7 @@ abstract class HybridMicrophoneSpec: HybridObject() {
   // Methods
   @DoNotStrip
   @Keep
-  abstract fun open(pipeId: String): Promise<Unit>
+  abstract fun open(pipeId: String, tuning: MicrophoneAndroidTuning?): Promise<Unit>
 
   private external fun initHybrid(): HybridData
 

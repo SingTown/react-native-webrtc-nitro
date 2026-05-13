@@ -14,7 +14,7 @@ public protocol HybridMicrophoneSpec_protocol: HybridObject {
   
 
   // Methods
-  func open(pipeId: String) throws -> Promise<Void>
+  func open(pipeId: String, tuning: MicrophoneAndroidTuning?) throws -> Promise<Void>
 }
 
 public extension HybridMicrophoneSpec_protocol {

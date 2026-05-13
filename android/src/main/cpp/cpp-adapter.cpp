@@ -133,13 +133,22 @@ Java_com_webrtc_HybridMicrophone_publishAudio (JNIEnv *env, jobject,
 }
 
 extern "C" JNIEXPORT auto JNICALL
-Java_com_webrtc_HybridMicrophone_startNativeMic (JNIEnv *env, jobject,
-                                                 jstring pipeId) -> jboolean
+Java_com_webrtc_HybridMicrophone_startNativeMic (
+    JNIEnv *env, jobject, jstring pipeId, jfloat agcTargetRms,
+    jfloat nearMaxGain, jfloat farMaxGain, jfloat noiseGateOpenRatio,
+    jfloat farThresholdRatio) -> jboolean
 {
     const char *pipeIdChars = env->GetStringUTFChars (pipeId, nullptr);
     std::string pipeIdStr (pipeIdChars);
     env->ReleaseStringUTFChars (pipeId, pipeIdChars);
-    return gNativeMicrophone.start (pipeIdStr) ? JNI_TRUE : JNI_FALSE;
+
+    NativeMicrophone::Tuning tuning;
+    tuning.agcTargetRms = agcTargetRms;
+    tuning.nearMaxGain = nearMaxGain;
+    tuning.farMaxGain = farMaxGain;
+    tuning.noiseGateOpenRatio = noiseGateOpenRatio;
+    tuning.farThresholdRatio = farThresholdRatio;
+    return gNativeMicrophone.start (pipeIdStr, tuning) ? JNI_TRUE : JNI_FALSE;
 }
 
 extern "C" JNIEXPORT void JNICALL
