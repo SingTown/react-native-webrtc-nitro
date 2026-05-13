@@ -294,7 +294,7 @@ public class HybridMicrophone: HybridMicrophoneSpec {
     private let microphoneManager = MicrophoneManager.shared
     public var pipeId: String = ""
     
-    public func open(pipeId: String) throws -> Promise<Void> {
+    public func open(pipeId: String, tuning: MicrophoneAndroidTuning?) throws -> Promise<Void> {
         guard !pipeId.isEmpty else {
             throw RuntimeError.error(withMessage: "Pipe ID cannot be empty")
         }

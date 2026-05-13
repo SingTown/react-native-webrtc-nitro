@@ -12,10 +12,13 @@
 // Forward declaration of `HybridMicrophoneSpec_cxx` to properly resolve imports.
 namespace Webrtc { class HybridMicrophoneSpec_cxx; }
 
-
+// Forward declaration of `MicrophoneAndroidTuning` to properly resolve imports.
+namespace margelo::nitro::webrtc { struct MicrophoneAndroidTuning; }
 
 #include <NitroModules/Promise.hpp>
 #include <string>
+#include "MicrophoneAndroidTuning.hpp"
+#include <optional>
 
 #include "Webrtc-Swift-Cxx-Umbrella.hpp"
 
@@ -61,8 +64,8 @@ namespace margelo::nitro::webrtc {
 
   public:
     // Methods
-    inline std::shared_ptr<Promise<void>> open(const std::string& pipeId) override {
-      auto __result = _swiftPart.open(pipeId);
+    inline std::shared_ptr<Promise<void>> open(const std::string& pipeId, const std::optional<MicrophoneAndroidTuning>& tuning) override {
+      auto __result = _swiftPart.open(pipeId, tuning);
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

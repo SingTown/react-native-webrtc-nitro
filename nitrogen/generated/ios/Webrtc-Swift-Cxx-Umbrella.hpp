@@ -16,6 +16,8 @@ namespace margelo::nitro::webrtc { class HybridMicrophoneSpec; }
 namespace margelo::nitro::webrtc { class HybridPermissionsSpec; }
 // Forward declaration of `HybridWebrtcViewSpec` to properly resolve imports.
 namespace margelo::nitro::webrtc { class HybridWebrtcViewSpec; }
+// Forward declaration of `MicrophoneAndroidTuning` to properly resolve imports.
+namespace margelo::nitro::webrtc { struct MicrophoneAndroidTuning; }
 // Forward declaration of `PermissionDescriptor` to properly resolve imports.
 namespace margelo::nitro::webrtc { struct PermissionDescriptor; }
 // Forward declaration of `PermissionName` to properly resolve imports.
@@ -28,6 +30,7 @@ namespace margelo::nitro::webrtc { enum class PermissionState; }
 #include "HybridMicrophoneSpec.hpp"
 #include "HybridPermissionsSpec.hpp"
 #include "HybridWebrtcViewSpec.hpp"
+#include "MicrophoneAndroidTuning.hpp"
 #include "PermissionDescriptor.hpp"
 #include "PermissionName.hpp"
 #include "PermissionState.hpp"

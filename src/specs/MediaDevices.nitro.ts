@@ -1,9 +1,18 @@
 import { type HybridObject } from 'react-native-nitro-modules'
 import { NitroModules } from 'react-native-nitro-modules'
 import { MediaStream } from './MediaStream.nitro'
+import { type MicrophoneAndroidTuning } from './Microphone.nitro'
+
+export interface AudioAndroidConstraints {
+  inputTuning?: MicrophoneAndroidTuning
+}
+
+export interface AudioConstraints {
+  android?: AudioAndroidConstraints
+}
 
 export interface MediaStreamConstraints {
-  audio?: boolean
+  audio?: boolean | AudioConstraints
   video?: boolean
 }
 

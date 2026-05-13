@@ -7,12 +7,16 @@
 
 #include "JHybridMicrophoneSpec.hpp"
 
-
+// Forward declaration of `MicrophoneAndroidTuning` to properly resolve imports.
+namespace margelo::nitro::webrtc { struct MicrophoneAndroidTuning; }
 
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/JPromise.hpp>
 #include <NitroModules/JUnit.hpp>
 #include <string>
+#include "MicrophoneAndroidTuning.hpp"
+#include <optional>
+#include "JMicrophoneAndroidTuning.hpp"
 
 namespace margelo::nitro::webrtc {
 
@@ -46,9 +50,9 @@ namespace margelo::nitro::webrtc {
   
 
   // Methods
-  std::shared_ptr<Promise<void>> JHybridMicrophoneSpec::open(const std::string& pipeId) {
-    static const auto method = javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* pipeId */)>("open");
-    auto __result = method(_javaPart, jni::make_jstring(pipeId));
+  std::shared_ptr<Promise<void>> JHybridMicrophoneSpec::open(const std::string& pipeId, const std::optional<MicrophoneAndroidTuning>& tuning) {
+    static const auto method = javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* pipeId */, jni::alias_ref<JMicrophoneAndroidTuning> /* tuning */)>("open");
+    auto __result = method(_javaPart, jni::make_jstring(pipeId), tuning.has_value() ? JMicrophoneAndroidTuning::fromCpp(tuning.value()) : nullptr);
     return [&]() {
       auto __promise = Promise<void>::create();
       __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& /* unit */) {

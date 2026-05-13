@@ -16,6 +16,8 @@ namespace margelo::nitro::webrtc { class HybridMicrophoneSpec; }
 namespace margelo::nitro::webrtc { class HybridPermissionsSpec; }
 // Forward declaration of `HybridWebrtcViewSpec` to properly resolve imports.
 namespace margelo::nitro::webrtc { class HybridWebrtcViewSpec; }
+// Forward declaration of `MicrophoneAndroidTuning` to properly resolve imports.
+namespace margelo::nitro::webrtc { struct MicrophoneAndroidTuning; }
 // Forward declaration of `PermissionState` to properly resolve imports.
 namespace margelo::nitro::webrtc { enum class PermissionState; }
 
@@ -34,6 +36,7 @@ namespace Webrtc { class HybridWebrtcViewSpec_cxx; }
 #include "HybridMicrophoneSpec.hpp"
 #include "HybridPermissionsSpec.hpp"
 #include "HybridWebrtcViewSpec.hpp"
+#include "MicrophoneAndroidTuning.hpp"
 #include "PermissionState.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/PromiseHolder.hpp>
@@ -125,6 +128,36 @@ namespace margelo::nitro::webrtc::bridge::swift {
   }
   inline Result_std__shared_ptr_Promise_void___ create_Result_std__shared_ptr_Promise_void___(const std::exception_ptr& error) noexcept {
     return Result<std::shared_ptr<Promise<void>>>::withError(error);
+  }
+  
+  // pragma MARK: std::optional<double>
+  /**
+   * Specialized version of `std::optional<double>`.
+   */
+  using std__optional_double_ = std::optional<double>;
+  inline std::optional<double> create_std__optional_double_(const double& value) noexcept {
+    return std::optional<double>(value);
+  }
+  inline bool has_value_std__optional_double_(const std::optional<double>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline double get_std__optional_double_(const std::optional<double>& optional) noexcept {
+    return *optional;
+  }
+  
+  // pragma MARK: std::optional<MicrophoneAndroidTuning>
+  /**
+   * Specialized version of `std::optional<MicrophoneAndroidTuning>`.
+   */
+  using std__optional_MicrophoneAndroidTuning_ = std::optional<MicrophoneAndroidTuning>;
+  inline std::optional<MicrophoneAndroidTuning> create_std__optional_MicrophoneAndroidTuning_(const MicrophoneAndroidTuning& value) noexcept {
+    return std::optional<MicrophoneAndroidTuning>(value);
+  }
+  inline bool has_value_std__optional_MicrophoneAndroidTuning_(const std::optional<MicrophoneAndroidTuning>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline MicrophoneAndroidTuning get_std__optional_MicrophoneAndroidTuning_(const std::optional<MicrophoneAndroidTuning>& optional) noexcept {
+    return *optional;
   }
   
   // pragma MARK: std::shared_ptr<HybridMicrophoneSpec>

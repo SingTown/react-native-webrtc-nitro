@@ -3,8 +3,34 @@
 #include "MockMicrophone.hpp"
 #include <NitroModules/HybridObjectRegistry.hpp>
 #include <NitroModules/Promise.hpp>
+#include <optional>
+#include <variant>
 
 using namespace margelo::nitro::webrtc;
+
+namespace
+{
+    auto resolveAudio (const std::optional<std::variant<bool, AudioConstraints>>
+                           &audioConstraint)
+        -> std::pair<bool, std::optional<MicrophoneAndroidTuning>>
+    {
+        if (!audioConstraint.has_value ())
+        {
+            return { false, std::nullopt };
+        }
+        if (std::holds_alternative<bool> (*audioConstraint))
+        {
+            return { std::get<bool> (*audioConstraint), std::nullopt };
+        }
+        const auto &obj = std::get<AudioConstraints> (*audioConstraint);
+        std::optional<MicrophoneAndroidTuning> tuning;
+        if (obj.android.has_value () && obj.android->inputTuning.has_value ())
+        {
+            tuning = obj.android->inputTuning;
+        }
+        return { true, tuning };
+    }
+}
 
 auto
 HybridMediaDevices::getMockMedia (const MediaStreamConstraints &constraints)
@@ -14,7 +40,8 @@ HybridMediaDevices::getMockMedia (const MediaStreamConstraints &constraints)
         [constraints] ()
         {
             auto hybridMediaStreams = std::make_shared<HybridMediaStream> ();
-            if (constraints.audio.value_or (false))
+            auto [audio, _tuning] = resolveAudio (constraints.audio);
+            if (audio)
             {
                 auto hybridAudioTrack
                     = std::make_shared<HybridMediaStreamTrack> ("audio");
@@ -39,7 +66,7 @@ auto
 HybridMediaDevices::getUserMedia (const MediaStreamConstraints &constraints)
     -> std::shared_ptr<Promise<std::shared_ptr<HybridMediaStreamSpec>>>
 {
-    bool audio = constraints.audio.value_or (false);
+    auto [audio, tuning] = resolveAudio (constraints.audio);
     bool video = constraints.video.value_or (false);
 
     auto hybridMediaStreams = std::make_shared<HybridMediaStream> ();
@@ -61,7 +88,9 @@ HybridMediaDevices::getUserMedia (const MediaStreamConstraints &constraints)
         hybridAudioTrack->microphone = microphone;
         hybridMediaStreams->addTrack (hybridAudioTrack);
 
-        microphone->open (hybridAudioTrack->get_srcPipeId ())->await ().get ();
+        microphone->open (hybridAudioTrack->get_srcPipeId (), tuning)
+            ->await ()
+            .get ();
     }
 
     if (video)
