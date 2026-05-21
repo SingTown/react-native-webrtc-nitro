@@ -3,7 +3,6 @@ import { Button, StyleSheet, View, Alert } from 'react-native';
 import { PermissionsAndroid, Platform } from 'react-native';
 import RNFS from 'react-native-fs';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
-import path from 'path-browserify';
 
 import {
   Permissions,
@@ -12,6 +11,27 @@ import {
   MediaDevices,
   MediaRecorder,
 } from 'react-native-webrtc-nitro';
+
+type RecordingSession = {
+  recorder: MediaRecorder;
+  file: string;
+};
+
+function getTempPath(prefix: string, extension: string) {
+  const temporaryDirectory = RNFS.TemporaryDirectoryPath.replace(/\/$/, '');
+  return `${temporaryDirectory}/${prefix}_${Date.now()}.${extension}`;
+}
+
+function toFileUri(filePath: string) {
+  return filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
 
 async function hasAndroidPermission() {
   const apiLevel = Number(Platform.Version);
@@ -69,10 +89,7 @@ async function requestPermission() {
 
 export default function Camera() {
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const mp4path = path.join(RNFS.TemporaryDirectoryPath, 'test_recording.mp4');
-  console.log('mp4path', mp4path);
-  const pngPath = path.join(RNFS.TemporaryDirectoryPath, 'test_photo.png');
-  const [recording, setRecording] = useState<MediaRecorder | null>(null);
+  const [recording, setRecording] = useState<RecordingSession | null>(null);
 
   useEffect(() => {
     let localStream: MediaStream | null = null;
@@ -119,6 +136,62 @@ export default function Camera() {
     };
   }, []);
 
+  const takePhoto = async () => {
+    if (!stream) {
+      return;
+    }
+
+    try {
+      await requestPermission();
+      const pngPath = getTempPath('test_photo', 'png');
+      const recorder = new MediaRecorder(stream);
+      await recorder.takePhoto(pngPath);
+      await CameraRoll.save(toFileUri(pngPath), { type: 'photo' });
+      console.log('Saved photo to camera roll');
+    } catch (error) {
+      console.error('Take photo failed', error);
+      Alert.alert('Take Photo Failed', getErrorMessage(error));
+    }
+  };
+
+  const startRecording = async () => {
+    if (!stream || recording) {
+      return;
+    }
+
+    try {
+      await requestPermission();
+      const mp4Path = getTempPath('test_recording', 'mp4');
+      const recorder = new MediaRecorder(stream);
+      recorder.startRecording(mp4Path);
+      setRecording({ recorder, file: mp4Path });
+      console.log('Started recording', mp4Path);
+    } catch (error) {
+      console.error('Start recording failed', error);
+      Alert.alert('Start Recording Failed', getErrorMessage(error));
+    }
+  };
+
+  const stopRecording = async () => {
+    if (!recording) {
+      return;
+    }
+
+    const currentRecording = recording;
+    setRecording(null);
+
+    try {
+      currentRecording.recorder.stopRecording();
+      await CameraRoll.save(toFileUri(currentRecording.file), {
+        type: 'video',
+      });
+      console.log('Saved recording to camera roll');
+    } catch (error) {
+      console.error('Stop recording failed', error);
+      Alert.alert('Stop Recording Failed', getErrorMessage(error));
+    }
+  };
+
   return (
     <View style={styles.container}>
       <WebrtcView style={styles.player} stream={stream} />
@@ -163,45 +236,20 @@ export default function Camera() {
         />
       </View>
       <View style={styles.buttonContainer}>
-        <Button
-          title="Take Photo"
-          onPress={async () => {
-            await requestPermission();
-            let new_recording = new MediaRecorder(stream!);
-            console.log('Taking photo...', pngPath);
-            await new_recording.takePhoto(pngPath);
-            console.log('new_recording.takePhoto done');
-            await CameraRoll.save(pngPath, { type: 'photo' });
-            console.log('CameraRoll.save');
-          }}
-        />
+        <Button title="Take Photo" disabled={!stream} onPress={takePhoto} />
       </View>
       <View style={styles.buttonContainer}>
         <Button
           title="Start Recording"
-          onPress={async () => {
-            if (recording) {
-              return;
-            }
-            await requestPermission();
-            let new_recording = new MediaRecorder(stream!);
-            new_recording.startRecording(mp4path);
-            setRecording(new_recording);
-          }}
+          disabled={!stream || recording !== null}
+          onPress={startRecording}
         />
       </View>
       <View style={styles.buttonContainer}>
         <Button
           title="Stop Recording"
-          onPress={async () => {
-            if (!recording) {
-              return;
-            }
-            recording.stopRecording();
-            await CameraRoll.save(mp4path, { type: 'video' });
-            console.log('Saved recording to camera roll');
-            setRecording(null);
-          }}
+          disabled={!recording}
+          onPress={stopRecording}
         />
       </View>
     </View>

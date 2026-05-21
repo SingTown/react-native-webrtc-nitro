@@ -1,30 +1,82 @@
 #include "FramePipe.hpp"
 #include <algorithm>
 #include <atomic>
+#include <condition_variable>
+#include <cstddef>
+#include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
 #include <utility>
 
 static std::shared_mutex mutex;
+static std::condition_variable_any cleanupCv;
 static int nextSubscriptionId = 1;
 
 struct Subscription
 {
     Subscription (std::vector<std::string> pipeIds, FrameCallback onFrame,
                   CleanupCallback onCleanup)
-        : pipeIds (std::move (pipeIds)),
-          onFrame (std::move (onFrame)),
+        : pipeIds (std::move (pipeIds)), onFrame (std::move (onFrame)),
           onCleanup (std::move (onCleanup))
     {
     }
+
     std::vector<std::string> pipeIds;
     FrameCallback onFrame;
     CleanupCallback onCleanup;
-    std::atomic<int> inFlight { 0 };
+    std::atomic<int> inFlight{ 0 };
     bool pendingCleanup = false;
 };
 
 std::unordered_map<int, Subscription> subscriptions;
+
+static void eraseSubscription (int subscriptionId)
+{
+    std::unique_lock lock (mutex);
+    subscriptions.erase (subscriptionId);
+    cleanupCv.notify_all ();
+}
+
+static void runCleanupAndErase (int subscriptionId,
+                                const CleanupCallback &cleanup)
+{
+    try
+    {
+        if (cleanup)
+        {
+            cleanup (subscriptionId);
+        }
+    }
+    catch (...)
+    {
+        eraseSubscription (subscriptionId);
+        throw;
+    }
+    eraseSubscription (subscriptionId);
+}
+
+static void finishFrameCallback (int subscriptionId)
+{
+    bool shouldNotify = false;
+    {
+        std::unique_lock lock (mutex);
+        auto it = subscriptions.find (subscriptionId);
+        if (it != subscriptions.end ())
+        {
+            int remaining
+                = it->second.inFlight.fetch_sub (1, std::memory_order_acq_rel)
+                  - 1;
+            if (remaining == 0 && it->second.pendingCleanup)
+            {
+                shouldNotify = true;
+            }
+        }
+    }
+    if (shouldNotify)
+    {
+        cleanupCv.notify_all ();
+    }
+}
 
 auto subscribe (const std::vector<std::string> &pipeIds,
                 const FrameCallback &onFrame, const CleanupCallback &onCleanup)
@@ -42,20 +94,42 @@ void unsubscribe (int subscriptionId)
     {
         std::unique_lock lock (mutex);
         auto it = subscriptions.find (subscriptionId);
-        if (it != subscriptions.end ())
+        if (it == subscriptions.end ())
         {
-            it->second.pendingCleanup = true;
-            if (it->second.inFlight.load (std::memory_order_acquire) == 0)
-            {
-                cleanup = it->second.onCleanup;
-                subscriptions.erase (it);
-            }
+            return;
         }
+
+        if (it->second.pendingCleanup)
+        {
+            cleanupCv.wait (lock,
+                            [subscriptionId]
+                            {
+                                return subscriptions.find (subscriptionId)
+                                       == subscriptions.end ();
+                            });
+            return;
+        }
+
+        it->second.pendingCleanup = true;
+        cleanupCv.wait (lock,
+                        [subscriptionId]
+                        {
+                            auto it = subscriptions.find (subscriptionId);
+                            return it == subscriptions.end ()
+                                   || it->second.inFlight.load (
+                                          std::memory_order_acquire)
+                                          == 0;
+                        });
+
+        it = subscriptions.find (subscriptionId);
+        if (it == subscriptions.end ())
+        {
+            return;
+        }
+        cleanup = it->second.onCleanup;
     }
-    if (cleanup)
-    {
-        cleanup (subscriptionId);
-    }
+
+    runCleanupAndErase (subscriptionId, cleanup);
 }
 
 void publish (const std::string &pipeId, const FFmpeg::Frame &frame)
@@ -88,29 +162,20 @@ void publish (const std::string &pipeId, const FFmpeg::Frame &frame)
         }
     }
 
-    for (const auto &callback : callbacks)
+    for (std::size_t i = 0; i < callbacks.size (); ++i)
     {
-        callback.second (pipeId, callback.first, frame);
-        CleanupCallback cleanup;
+        try
         {
-            std::unique_lock lock (mutex);
-            auto it = subscriptions.find (callback.first);
-            if (it != subscriptions.end ())
+            callbacks[i].second (pipeId, callbacks[i].first, frame);
+        }
+        catch (...)
+        {
+            for (std::size_t j = i; j < callbacks.size (); ++j)
             {
-                int remaining
-                    = it->second.inFlight.fetch_sub (1,
-                                                     std::memory_order_acq_rel)
-                      - 1;
-                if (remaining == 0 && it->second.pendingCleanup)
-                {
-                    cleanup = it->second.onCleanup;
-                    subscriptions.erase (it);
-                }
+                finishFrameCallback (callbacks[j].first);
             }
+            throw;
         }
-        if (cleanup)
-        {
-            cleanup (callback.first);
-        }
+        finishFrameCallback (callbacks[i].first);
     }
 }
