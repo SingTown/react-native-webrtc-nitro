@@ -498,45 +498,6 @@ react-native-webrtc-nitro
     └── opus/
 ```
 
-## 🔧 Development
-
-### Setup Development Environment
-
-```bash
-# Clone repository
-git clone https://github.com/SingTown/react-native-webrtc-nitro.git
-cd react-native-webrtc-nitro
-
-# Build native libraries first
-cd 3rdparty
-
-# Download dependencies
-./download.sh
-
-# Build for iOS
-./build_ios.sh
-
-# Build for Android
-./build_android.sh
-
-cd ..
-
-# Install dependencies
-pnpm install
-```
-
-### Run Example
-
-```bash
-cd example
-
-# iOS
-pnpm ios
-
-# Android
-pnpm android
-```
-
 ## 📝 Example Project
 
 Check the `example` directory for a complete sample application, including:
