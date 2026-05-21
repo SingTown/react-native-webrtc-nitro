@@ -41,6 +41,9 @@
     "MediaRecorder": {
       "cpp": "HybridMediaRecorder"
     },
+    "ImageCapture": {
+      "cpp": "HybridImageCapture"
+    },
     "RTCRtpSender": {
       "cpp": "HybridRTCRtpSender"
     },

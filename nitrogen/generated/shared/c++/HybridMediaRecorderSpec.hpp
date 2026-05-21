@@ -18,7 +18,6 @@ namespace margelo::nitro::webrtc { class HybridMediaStreamSpec; }
 
 #include <memory>
 #include "HybridMediaStreamSpec.hpp"
-#include <NitroModules/Promise.hpp>
 #include <string>
 
 namespace margelo::nitro::webrtc {
@@ -53,7 +52,6 @@ namespace margelo::nitro::webrtc {
 
     public:
       // Methods
-      virtual std::shared_ptr<Promise<void>> takePhoto(const std::string& file) = 0;
       virtual void startRecording(const std::string& file) = 0;
       virtual void stopRecording() = 0;
 

@@ -34,6 +34,7 @@ target_sources(
   ../nitrogen/generated/android/WebrtcOnLoad.cpp
   # Shared Nitrogen C++ sources
   ../nitrogen/generated/shared/c++/HybridCameraSpec.cpp
+  ../nitrogen/generated/shared/c++/HybridImageCaptureSpec.cpp
   ../nitrogen/generated/shared/c++/HybridMediaDevicesSpec.cpp
   ../nitrogen/generated/shared/c++/HybridMediaRecorderSpec.cpp
   ../nitrogen/generated/shared/c++/HybridMediaStreamSpec.cpp

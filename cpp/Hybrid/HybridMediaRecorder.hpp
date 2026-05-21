@@ -1,7 +1,6 @@
 #pragma once
 #include "HybridMediaRecorderSpec.hpp"
 #include "HybridMediaStream.hpp"
-#include <NitroModules/Promise.hpp>
 
 namespace margelo::nitro::webrtc
 {
@@ -28,8 +27,6 @@ namespace margelo::nitro::webrtc
                 = std::dynamic_pointer_cast<HybridMediaStream> (mediaStream);
         }
 
-        auto takePhoto (const std::string &file)
-            -> std::shared_ptr<Promise<void>> override;
         void startRecording (const std::string &file) override;
         void stopRecording () override;
     };

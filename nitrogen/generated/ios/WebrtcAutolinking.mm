@@ -18,6 +18,7 @@
 #include "HybridWebrtcViewSpecSwift.hpp"
 #include "HybridMediaDevices.hpp"
 #include "HybridMediaRecorder.hpp"
+#include "HybridImageCapture.hpp"
 #include "HybridRTCRtpSender.hpp"
 #include "HybridRTCRtpReceiver.hpp"
 #include "HybridRTCRtpTransceiver.hpp"
@@ -94,6 +95,15 @@
                     "The HybridObject \"HybridMediaRecorder\" is not default-constructible! "
                     "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
       return std::make_shared<HybridMediaRecorder>();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "ImageCapture",
+    []() -> std::shared_ptr<HybridObject> {
+      static_assert(std::is_default_constructible_v<HybridImageCapture>,
+                    "The HybridObject \"HybridImageCapture\" is not default-constructible! "
+                    "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
+      return std::make_shared<HybridImageCapture>();
     }
   );
   HybridObjectRegistry::registerHybridObjectConstructor(

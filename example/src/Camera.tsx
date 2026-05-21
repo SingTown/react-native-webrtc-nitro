@@ -10,6 +10,7 @@ import {
   MediaStream,
   MediaDevices,
   MediaRecorder,
+  ImageCapture,
 } from 'react-native-webrtc-nitro';
 
 type RecordingSession = {
@@ -144,8 +145,12 @@ export default function Camera() {
     try {
       await requestPermission();
       const pngPath = getTempPath('test_photo', 'png');
-      const recorder = new MediaRecorder(stream);
-      await recorder.takePhoto(pngPath);
+      const [videoTrack] = stream.getVideoTracks();
+      if (!videoTrack) {
+        throw new Error('No video track available');
+      }
+      const imageCapture = new ImageCapture(videoTrack);
+      await imageCapture.takePhoto(pngPath);
       await CameraRoll.save(toFileUri(pngPath), { type: 'photo' });
       console.log('Saved photo to camera roll');
     } catch (error) {

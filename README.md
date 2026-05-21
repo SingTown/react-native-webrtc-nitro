@@ -11,6 +11,7 @@ A high-performance WebRTC library built on [Nitro Modules](https://github.com/mr
 - 🚀 **High Performance**: Built on Nitro Modules for native-level performance
 - 🎥 **Complete WebRTC API**: Support for audio/video calls, data channels, and more
 - 📹 **Media Recording**: Built-in MediaRecorder support for recording audio/video streams
+- 📸 **Image Capture**: Capture PNG photos from video tracks
 - 🎬 **FFmpeg Integration**: Powerful audio/video encoding, decoding, transcoding, and processing capabilities
 - 🎞️ **H.264/H.265 Support**: Hardware-accelerated H.264 and H.265 (HEVC) encoding and decoding
 - 🎵 **Opus Audio Codec**: High-quality Opus audio encoding and decoding for efficient audio streaming
@@ -283,19 +284,21 @@ function VideoCall() {
 }
 ```
 
-### Media Recording
+### Media Capture and Recording
 
 ```typescript
-import { MediaRecorder } from 'react-native-webrtc-nitro';
+import { ImageCapture, MediaRecorder } from 'react-native-webrtc-nitro';
 import RNFS from 'react-native-fs';
+
+// Take a PNG photo from a video track
+const [videoTrack] = mediaStream.getVideoTracks();
+const imageCapture = new ImageCapture(videoTrack);
+const photoPath = `${RNFS.DocumentDirectoryPath}/photo.png`;
+await imageCapture.takePhoto(photoPath);
+console.log('Photo saved to:', photoPath);
 
 // Create recorder with media stream
 const recorder = new MediaRecorder(mediaStream);
-
-// Take a photo from the stream
-const photoPath = `${RNFS.DocumentDirectoryPath}/photo.jpg`;
-await recorder.takePhoto(photoPath);
-console.log('Photo saved to:', photoPath);
 
 // Start video recording
 const videoPath = `${RNFS.DocumentDirectoryPath}/video.mp4`;
@@ -467,16 +470,27 @@ import RNFS from 'react-native-fs';
 // Create recorder
 const recorder = new MediaRecorder(stream);
 
-// Take photo
-const photoPath = `${RNFS.DocumentDirectoryPath}/photo.jpg`;
-await recorder.takePhoto(photoPath);
-
 // Start recording video
 const videoPath = `${RNFS.DocumentDirectoryPath}/video.mp4`;
 recorder.startRecording(videoPath);
 
 // Stop recording
 recorder.stopRecording();
+```
+
+### ImageCapture
+
+Image capture from a video track
+
+```typescript
+import { ImageCapture } from 'react-native-webrtc-nitro';
+import RNFS from 'react-native-fs';
+
+const [videoTrack] = stream.getVideoTracks();
+const imageCapture = new ImageCapture(videoTrack);
+const photoPath = `${RNFS.DocumentDirectoryPath}/photo.png`;
+
+await imageCapture.takePhoto(photoPath);
 ```
 
 ## 🏗️ Architecture

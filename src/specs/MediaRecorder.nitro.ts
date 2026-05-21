@@ -4,7 +4,6 @@ import { MediaStream } from './MediaStream.nitro'
 
 interface MediaRecorder extends HybridObject<{ ios: 'c++'; android: 'c++' }> {
   stream: MediaStream
-  takePhoto(file: string): Promise<void>
   startRecording(file: string): void
   stopRecording(): void
 }

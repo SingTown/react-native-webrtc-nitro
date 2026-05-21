@@ -1,77 +1,8 @@
 #include "HybridMediaRecorder.hpp"
 #include "FramePipe.hpp"
-#include <atomic>
-#include <chrono>
 #include <filesystem>
-#include <thread>
 
 using namespace margelo::nitro::webrtc;
-
-auto HybridMediaRecorder::takePhoto (const std::string &file)
-    -> std::shared_ptr<Promise<void>>
-{
-    if (subscriptionId != -1)
-    {
-        throw std::runtime_error ("MediaRecorder is already in use");
-    }
-
-    if (mediaStream == nullptr)
-    {
-        throw std::runtime_error (
-            "MediaStream is not set for HybridMediaRecorder");
-    }
-
-    if (std::filesystem::path (file).extension () != ".png")
-    {
-        throw std::invalid_argument ("Only .png format is supported");
-    }
-
-    auto tracks = mediaStream->getVideoTracks ();
-    if (tracks.empty ())
-    {
-        throw std::runtime_error ("No video tracks available in MediaStream");
-    }
-    std::string srcPipeId = tracks[0]->get_srcPipeId ();
-    return Promise<void>::async (
-        [this, srcPipeId, file] () -> void
-        {
-            std::atomic<bool> photoTaken{ false };
-            auto encoder = std::make_shared<FFmpeg::Encoder> (AV_CODEC_ID_PNG);
-            FrameCallback callback
-                = [encoder, file, &photoTaken] (const std::string &, int,
-                                                const FFmpeg::Frame &frame)
-            {
-                if (photoTaken.exchange (true))
-                {
-                    return;
-                }
-                FILE *f = fopen (file.c_str (), "wb");
-                if (!f)
-                {
-                    throw std::invalid_argument ("Failed to open file " + file
-                                                 + " for writing");
-                }
-                encoder->send (frame);
-                encoder->flush ();
-                for (const FFmpeg::Packet &packet : encoder->receive ())
-                {
-                    fwrite (packet->data, 1, packet->size, f);
-                }
-                fclose (f);
-            };
-
-            this->subscriptionId
-                = subscribe ({ srcPipeId }, callback, nullptr);
-
-            // wait for the callback to be called
-            while (!photoTaken.load ())
-            {
-                std::this_thread::sleep_for (std::chrono::milliseconds (10));
-            }
-            ::unsubscribe (this->subscriptionId);
-            this->subscriptionId = -1;
-        });
-}
 
 void HybridMediaRecorder::startRecording (const std::string &file)
 {

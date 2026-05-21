@@ -16,7 +16,6 @@ namespace margelo::nitro::webrtc {
     registerHybrids(this, [](Prototype& prototype) {
       prototype.registerHybridGetter("stream", &HybridMediaRecorderSpec::getStream);
       prototype.registerHybridSetter("stream", &HybridMediaRecorderSpec::setStream);
-      prototype.registerHybridMethod("takePhoto", &HybridMediaRecorderSpec::takePhoto);
       prototype.registerHybridMethod("startRecording", &HybridMediaRecorderSpec::startRecording);
       prototype.registerHybridMethod("stopRecording", &HybridMediaRecorderSpec::stopRecording);
     });
