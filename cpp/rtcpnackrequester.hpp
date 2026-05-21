@@ -1,8 +1,8 @@
 #ifndef RTC_RTCP_JITTER_REQUESTER_H
 #define RTC_RTCP_JITTER_REQUESTER_H
 
-#include <queue>
 #include <libavcodec/avcodec.h>
+#include <queue>
 #include <rtc/rtc.hpp>
 
 namespace rtc
@@ -11,8 +11,7 @@ namespace rtc
     class RTC_CPP_EXPORT RtcpNackRequester final : public MediaHandler
     {
       public:
-        RtcpNackRequester (SSRC ssrc, AVCodecID codec,
-                           size_t jitterSize = 5,
+        RtcpNackRequester (SSRC ssrc, AVCodecID codec, size_t jitterSize = 5,
                            size_t nackResendIntervalMs = 10,
                            size_t nackResendTimesMax = 10);
         SSRC ssrc;

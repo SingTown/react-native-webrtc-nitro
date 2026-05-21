@@ -13,6 +13,17 @@ set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
 
 enable_testing()
 find_package(GTest REQUIRED)
+include(GoogleTest)
+find_package(ZLIB REQUIRED)
+find_library(OPUS_LIBRARY NAMES opus)
+find_library(X264_LIBRARY NAMES x264)
+find_library(X265_LIBRARY NAMES x265)
+
+foreach(REQUIRED_LIBRARY OPUS_LIBRARY X264_LIBRARY X265_LIBRARY)
+    if(NOT ${REQUIRED_LIBRARY})
+        message(FATAL_ERROR "Could not find ${REQUIRED_LIBRARY}")
+    endif()
+endforeach()
 
 file(GLOB CPP_SOURCES
     ${TOP_PATH}/cpp/*.cpp
@@ -31,7 +42,12 @@ target_include_directories(
     PUBLIC
     ${TOP_PATH}/cpp/
     ${TOP_PATH}/cpp/FFmpeg/
+)
+
+target_include_directories(
+    testcpp
     SYSTEM
+    PUBLIC
     ${LIBDATACHANNEL_PATH}/include
     ${FFMPEG_PATH}/include
 )
@@ -51,10 +67,12 @@ target_link_libraries(
     ${FFMPEG_PATH}/lib/libswscale.a
     ${FFMPEG_PATH}/lib/libswresample.a
     ${FFMPEG_PATH}/lib/libavutil.a
-    opus
-    x264
-    x265
-    z
+    ${OPUS_LIBRARY}
+    ${X264_LIBRARY}
+    ${X265_LIBRARY}
+    ZLIB::ZLIB
     GTest::gtest
     GTest::gtest_main
 )
+
+gtest_discover_tests(testcpp)

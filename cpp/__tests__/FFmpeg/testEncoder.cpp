@@ -181,6 +181,12 @@ TEST (EncoderTest, testPng)
 
     // std::string file = "out.png";
     FILE *file = fopen (path.c_str (), "wb");
+    if (file == nullptr)
+    {
+        FAIL () << "Could not open file: " << path;
+        return;
+    }
+
     encoder.send (inputFrame);
     encoder.flush ();
     for (auto &pkt : encoder.receive ())

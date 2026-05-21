@@ -82,11 +82,11 @@ namespace margelo::nitro::webrtc
             }
             if (microphone)
             {
-                microphone->dispose();
+                microphone->dispose ();
             }
             if (camera)
             {
-                camera->dispose();
+                camera->dispose ();
             }
         };
     };

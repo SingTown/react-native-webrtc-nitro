@@ -99,13 +99,11 @@ namespace rtc
                     filtered.push_back (msg);
                     continue;
                 }
-                auto rtp
-                    = reinterpret_cast<RtpHeader *> (msg->data ());
-                auto payload = reinterpret_cast<const std::byte *> (
-                    rtp->getBody ());
+                auto rtp = reinterpret_cast<RtpHeader *> (msg->data ());
+                auto payload
+                    = reinterpret_cast<const std::byte *> (rtp->getBody ());
                 size_t payloadSize = msg->size () - rtp->getSize ();
-                if (payloadSize > 0
-                    && checkKeyframe (payload, payloadSize))
+                if (payloadSize > 0 && checkKeyframe (payload, payloadSize))
                 {
                     droppingUntilKeyframe = false;
                     filtered.push_back (msg);
@@ -122,8 +120,8 @@ namespace rtc
         return (int16_t)(seq1 - seq2) >= 0;
     }
 
-    auto RtcpNackRequester::checkKeyframe (const std::byte *data,
-                                           size_t size) -> bool
+    auto RtcpNackRequester::checkKeyframe (const std::byte *data, size_t size)
+        -> bool
     {
         if (codec == AV_CODEC_ID_H264)
         {
@@ -135,8 +133,7 @@ namespace rtc
             if (nalType == 28 && size >= 2)
             { // FU-A
                 bool startBit = static_cast<uint8_t> (data[1]) >> 7;
-                uint8_t fuNalType
-                    = static_cast<uint8_t> (data[1]) & 0x1F;
+                uint8_t fuNalType = static_cast<uint8_t> (data[1]) & 0x1F;
                 return startBit && fuNalType == 5;
             }
         }
@@ -144,8 +141,7 @@ namespace rtc
         {
             if (size < 2)
                 return false;
-            uint8_t nalType
-                = (static_cast<uint8_t> (data[0]) & 0x7E) >> 1;
+            uint8_t nalType = (static_cast<uint8_t> (data[0]) & 0x7E) >> 1;
             if (nalType == 19 || nalType == 20)
                 return true; // IDR
             if (nalType == 32)
@@ -153,10 +149,8 @@ namespace rtc
             if (nalType == 49 && size >= 3)
             { // FU
                 bool startBit = static_cast<uint8_t> (data[2]) >> 7;
-                uint8_t fuNalType
-                    = static_cast<uint8_t> (data[2]) & 0x3F;
-                return startBit
-                       && (fuNalType == 19 || fuNalType == 20);
+                uint8_t fuNalType = static_cast<uint8_t> (data[2]) & 0x3F;
+                return startBit && (fuNalType == 19 || fuNalType == 20);
             }
         }
         return false;

@@ -4,11 +4,11 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/unittest.yml'
+      - '.github/workflows/testcpp.yml'
       - 'cpp/**'
   pull_request:
     paths:
-      - '.github/workflows/unittest.yml'
+      - '.github/workflows/testcpp.yml'
       - 'cpp/**'
   workflow_dispatch:
 
@@ -23,8 +23,25 @@ jobs:
         run: |
           export DEBIAN_FRONTEND=noninteractive
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake clang-tidy pkg-config python3 git
+          sudo apt-get install -y build-essential cmake clang-format clang-tidy pkg-config python3 git
           sudo apt-get install -y libgtest-dev libopus-dev libx264-dev libx265-dev libnuma-dev
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.23.0
+          run_install: false
+
+      - name: Install pnpm dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare clang-format-node
+        run: |
+          node node_modules/clang-format-node/chmod.js
+          pnpm exec clang-format --version
+
+      - name: Run C++ lint
+        run: pnpm run lint:cpp
 
       - name: Cache 3rdparty output
         id: cache-3rdparty-unittest

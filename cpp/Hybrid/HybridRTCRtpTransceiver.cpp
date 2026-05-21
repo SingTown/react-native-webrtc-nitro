@@ -232,9 +232,8 @@ void HybridRTCRtpTransceiver::receiverOnOpen ()
 
     if (rtpMap->format == "H265")
     {
-        auto nackRequester
-            = std::make_shared<rtc::RtcpNackRequester> (
-                ssrc, AV_CODEC_ID_H265);
+        auto nackRequester = std::make_shared<rtc::RtcpNackRequester> (
+            ssrc, AV_CODEC_ID_H265);
 
         auto depacketizer
             = std::make_shared<rtc::H265RtpDepacketizer> (separator);
@@ -246,9 +245,8 @@ void HybridRTCRtpTransceiver::receiverOnOpen ()
     }
     else if (rtpMap->format == "H264")
     {
-        auto nackRequester
-            = std::make_shared<rtc::RtcpNackRequester> (
-                ssrc, AV_CODEC_ID_H264);
+        auto nackRequester = std::make_shared<rtc::RtcpNackRequester> (
+            ssrc, AV_CODEC_ID_H264);
 
         auto depacketizer
             = std::make_shared<rtc::H264RtpDepacketizer> (separator);
