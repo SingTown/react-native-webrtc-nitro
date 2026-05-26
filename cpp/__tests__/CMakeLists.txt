@@ -64,6 +64,7 @@ target_link_libraries(
     ${LIBDATACHANNEL_PATH}/lib/libmbedcrypto.a
     ${FFMPEG_PATH}/lib/libavformat.a
     ${FFMPEG_PATH}/lib/libavcodec.a
+    ${FFMPEG_PATH}/lib/libavfilter.a
     ${FFMPEG_PATH}/lib/libswscale.a
     ${FFMPEG_PATH}/lib/libswresample.a
     ${FFMPEG_PATH}/lib/libavutil.a

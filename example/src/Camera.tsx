@@ -200,62 +200,74 @@ export default function Camera() {
   return (
     <View style={styles.container}>
       <WebrtcView style={styles.player} stream={stream} />
-      <View style={styles.buttonContainer}>
-        <Button
-          title="Enable Video"
-          onPress={() => {
-            stream?.getVideoTracks().forEach(track => {
-              track.enabled = true;
-            });
-          }}
-        />
-      </View>
-      <View style={styles.buttonContainer}>
-        <Button
-          title="Disable Video"
-          onPress={() => {
-            stream?.getVideoTracks().forEach(track => {
-              track.enabled = false;
-            });
-          }}
-        />
-      </View>
-      <View style={styles.buttonContainer}>
-        <Button
-          title="Enable Audio"
-          onPress={() => {
-            stream?.getAudioTracks().forEach(track => {
-              track.enabled = true;
-            });
-          }}
-        />
-      </View>
-      <View style={styles.buttonContainer}>
-        <Button
-          title="Disable Audio"
-          onPress={() => {
-            stream?.getAudioTracks().forEach(track => {
-              track.enabled = false;
-            });
-          }}
-        />
-      </View>
-      <View style={styles.buttonContainer}>
-        <Button title="Take Photo" disabled={!stream} onPress={takePhoto} />
-      </View>
-      <View style={styles.buttonContainer}>
-        <Button
-          title="Start Recording"
-          disabled={!stream || recording !== null}
-          onPress={startRecording}
-        />
-      </View>
-      <View style={styles.buttonContainer}>
-        <Button
-          title="Stop Recording"
-          disabled={!recording}
-          onPress={stopRecording}
-        />
+      <View style={styles.controls}>
+        <View style={styles.buttonRow}>
+          <View style={styles.rowButtonContainer}>
+            <Button
+              title="Enable Video"
+              disabled={!stream}
+              onPress={() => {
+                stream?.getVideoTracks().forEach(track => {
+                  track.enabled = true;
+                });
+              }}
+            />
+          </View>
+          <View style={styles.rowButtonContainer}>
+            <Button
+              title="Disable Video"
+              disabled={!stream}
+              onPress={() => {
+                stream?.getVideoTracks().forEach(track => {
+                  track.enabled = false;
+                });
+              }}
+            />
+          </View>
+        </View>
+        <View style={styles.buttonRow}>
+          <View style={styles.rowButtonContainer}>
+            <Button
+              title="Enable Audio"
+              disabled={!stream}
+              onPress={() => {
+                stream?.getAudioTracks().forEach(track => {
+                  track.enabled = true;
+                });
+              }}
+            />
+          </View>
+          <View style={styles.rowButtonContainer}>
+            <Button
+              title="Disable Audio"
+              disabled={!stream}
+              onPress={() => {
+                stream?.getAudioTracks().forEach(track => {
+                  track.enabled = false;
+                });
+              }}
+            />
+          </View>
+        </View>
+        <View style={styles.buttonContainer}>
+          <Button title="Take Photo" disabled={!stream} onPress={takePhoto} />
+        </View>
+        <View style={styles.buttonRow}>
+          <View style={styles.rowButtonContainer}>
+            <Button
+              title="Start Recording"
+              disabled={!stream || recording !== null}
+              onPress={startRecording}
+            />
+          </View>
+          <View style={styles.rowButtonContainer}>
+            <Button
+              title="Stop Recording"
+              disabled={!recording}
+              onPress={stopRecording}
+            />
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -270,9 +282,21 @@ const styles = StyleSheet.create({
   player: {
     height: 240,
   },
+  controls: {
+    gap: 10,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
   buttonContainer: {
     height: 44,
-    margin: 5,
+    justifyContent: 'center',
+    backgroundColor: '#a8a4a4a3',
+  },
+  rowButtonContainer: {
+    flex: 1,
+    height: 44,
     justifyContent: 'center',
     backgroundColor: '#a8a4a4a3',
   },

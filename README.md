@@ -15,6 +15,7 @@ A high-performance WebRTC library built on [Nitro Modules](https://github.com/mr
 - 🎬 **FFmpeg Integration**: Powerful audio/video encoding, decoding, transcoding, and processing capabilities
 - 🎞️ **H.264/H.265 Support**: Hardware-accelerated H.264 and H.265 (HEVC) encoding and decoding
 - 🎵 **Opus Audio Codec**: High-quality Opus audio encoding and decoding for efficient audio streaming
+- 🔊 **Audio Enhancement**: Supports echo cancellation, noise suppression, and automatic gain control
 - 📱 **Cross-Platform**: Perfect support for iOS and Android
 - 🔧 **TypeScript**: Full type definitions
 - 🎨 **Nitro Views**: High-performance video rendering views

@@ -16,7 +16,14 @@ OUTPUT_DIR="${TOP_DIR}/output/unittest/ffmpeg"
         --disable-asm \
         --disable-iconv \
         --disable-avdevice \
-        --disable-avfilter \
+        --enable-avfilter \
+        --enable-filter=afftdn \
+        --enable-filter=agate \
+        --enable-filter=dynaudnorm \
+        --enable-filter=ebur128 \
+        --enable-filter=highpass \
+        --enable-filter=lowpass \
+        --enable-filter=aresample \
         --enable-swresample \
         --enable-avcodec \
         --enable-avformat \

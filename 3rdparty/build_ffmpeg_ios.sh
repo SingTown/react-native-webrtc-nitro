@@ -40,7 +40,14 @@ for i in "${!SDKS[@]}"; do
             --disable-asm \
             --disable-iconv \
             --disable-avdevice \
-            --disable-avfilter \
+            --enable-avfilter \
+            --enable-filter=afftdn \
+            --enable-filter=agate \
+            --enable-filter=dynaudnorm \
+            --enable-filter=ebur128 \
+            --enable-filter=highpass \
+            --enable-filter=lowpass \
+            --enable-filter=aresample \
             --enable-swresample \
             --enable-avcodec \
             --enable-avformat \
@@ -71,6 +78,7 @@ for i in "${!SDKS[@]}"; do
         $OPUS_DIR/install/lib/libopus.a \
         $FFMPEG_DIR/install/lib/libavcodec.a \
         $FFMPEG_DIR/install/lib/libavformat.a \
+        $FFMPEG_DIR/install/lib/libavfilter.a \
         $FFMPEG_DIR/install/lib/libswscale.a \
         $FFMPEG_DIR/install/lib/libswresample.a \
         $FFMPEG_DIR/install/lib/libavutil.a

@@ -25,6 +25,8 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
         context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     private var audioRouteApplied = false
     private var audioDeviceCallbackRegistered = false
+    private var previousAudioMode: Int? = null
+    private var previousSpeakerphoneOn: Boolean? = null
     private val audioDeviceCallback = object : AudioDeviceCallback() {
         override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
             view.post { refreshAudioRouteIfNeeded() }
@@ -36,27 +38,31 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
     }
 
     companion object {
+        private const val SAMPLE_RATE = 48000
+        private const val CHANNEL_OUT_CONFIG = AudioFormat.CHANNEL_OUT_STEREO
+        private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
+        private const val OUTPUT_CHANNEL_COUNT = 2
+        private const val BYTES_PER_SAMPLE = 2
+        private const val PLAYBACK_BUFFER_DURATION_MS = 80
+        private const val PLAYBACK_BUFFER_SIZE =
+            SAMPLE_RATE * OUTPUT_CHANNEL_COUNT * BYTES_PER_SAMPLE *
+                PLAYBACK_BUFFER_DURATION_MS / 1000
+
         private var audioTrack = AudioTrack.Builder()
             .setAudioAttributes(
                 AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                     .build()
             )
             .setAudioFormat(
                 AudioFormat.Builder()
-                    .setSampleRate(48000)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
-                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                    .setSampleRate(SAMPLE_RATE)
+                    .setChannelMask(CHANNEL_OUT_CONFIG)
+                    .setEncoding(AUDIO_FORMAT)
                     .build()
             )
-            .setBufferSizeInBytes(
-                AudioTrack.getMinBufferSize(
-                    48000,
-                    AudioFormat.CHANNEL_OUT_STEREO,
-                    AudioFormat.ENCODING_PCM_16BIT
-                ) * 4
-            )
+            .setBufferSizeInBytes(PLAYBACK_BUFFER_SIZE)
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
     }
@@ -152,8 +158,11 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
         if (audioRouteApplied) {
             return
         }
+        previousAudioMode = audioManager.mode
+        previousSpeakerphoneOn = audioManager.isSpeakerphoneOn
+        audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
         val targetOutput = selectPreferredOutputDevice()
-        audioTrack.setPreferredDevice(targetOutput)
+        routeAudioTo(targetOutput)
         audioRouteApplied = true
     }
 
@@ -162,6 +171,10 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
             return
         }
         audioTrack.setPreferredDevice(null)
+        audioManager.isSpeakerphoneOn = previousSpeakerphoneOn ?: false
+        previousSpeakerphoneOn = null
+        audioManager.mode = previousAudioMode ?: AudioManager.MODE_NORMAL
+        previousAudioMode = null
         audioRouteApplied = false
     }
 
@@ -170,6 +183,12 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
             return
         }
         val targetOutput = selectPreferredOutputDevice()
+        routeAudioTo(targetOutput)
+    }
+
+    private fun routeAudioTo(targetOutput: AudioDeviceInfo?) {
+        audioManager.isSpeakerphoneOn =
+            targetOutput?.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER
         audioTrack.setPreferredDevice(targetOutput)
     }
 
@@ -190,6 +209,6 @@ class HybridWebrtcView(val context: ThemedReactContext) : HybridWebrtcViewSpec()
                 return match
             }
         }
-        return null
+        return devices.firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
     }
 }

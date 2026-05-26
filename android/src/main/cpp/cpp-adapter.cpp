@@ -1,15 +1,28 @@
 #include "FFmpeg.hpp"
 #include "FramePipe.hpp"
-#include "NativeMicrophone.hpp"
 #include "WebrtcOnLoad.hpp"
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
 #include <chrono>
+#include <cstdint>
+#include <cstring>
 #include <jni.h>
+#include <memory>
+#include <mutex>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 JavaVM *gJvm = nullptr;
-static NativeMicrophone gNativeMicrophone;
+
+namespace
+{
+    constexpr int kMicrophoneSampleRate = 48000;
+    constexpr int kMicrophoneChannelCount = 1;
+    std::mutex gMicrophoneAudioFiltersMutex;
+    std::unordered_map<std::string, std::shared_ptr<FFmpeg::AudioFilter>>
+        gMicrophoneAudioFilters;
+}
 
 JNIEXPORT auto JNICALL JNI_OnLoad (JavaVM *vm, void *) -> jint
 {
@@ -122,30 +135,78 @@ Java_com_webrtc_HybridMicrophone_publishAudio (JNIEnv *env, jobject,
                                                jint size)
 
 {
-    auto frame = FFmpeg::Frame (AV_SAMPLE_FMT_S16, 48000, 1, size / 2);
-    jboolean isCopy = JNI_FALSE;
-    jbyte *audioData = env->GetByteArrayElements (audioBuffer, &isCopy);
-    memcpy (frame->data[0], audioData, size);
-    env->ReleaseByteArrayElements (audioBuffer, audioData, JNI_ABORT);
+    if (pipeId == nullptr || audioBuffer == nullptr || size <= 0)
+    {
+        return;
+    }
 
-    std::string pipeIdStr (env->GetStringUTFChars (pipeId, nullptr));
-    publish (pipeIdStr, frame);
-}
-
-extern "C" JNIEXPORT auto JNICALL
-Java_com_webrtc_HybridMicrophone_startNativeMic (JNIEnv *env, jobject,
-                                                 jstring pipeId) -> jboolean
-{
     const char *pipeIdChars = env->GetStringUTFChars (pipeId, nullptr);
+    if (pipeIdChars == nullptr)
+    {
+        return;
+    }
     std::string pipeIdStr (pipeIdChars);
     env->ReleaseStringUTFChars (pipeId, pipeIdChars);
-    return gNativeMicrophone.start (pipeIdStr) ? JNI_TRUE : JNI_FALSE;
+    if (pipeIdStr.empty ())
+    {
+        return;
+    }
+
+    auto frame
+        = FFmpeg::Frame (AV_SAMPLE_FMT_S16, kMicrophoneSampleRate,
+                         kMicrophoneChannelCount, size / sizeof (int16_t));
+    env->GetByteArrayRegion (audioBuffer, 0, size,
+                             reinterpret_cast<jbyte *> (frame->data[0]));
+    if (env->ExceptionCheck ())
+    {
+        return;
+    }
+
+    std::shared_ptr<FFmpeg::AudioFilter> audioFilter;
+    {
+        std::lock_guard lock (gMicrophoneAudioFiltersMutex);
+        auto existing = gMicrophoneAudioFilters.find (pipeIdStr);
+        if (existing != gMicrophoneAudioFilters.end ())
+        {
+            audioFilter = existing->second;
+        }
+        else
+        {
+            audioFilter = std::make_shared<FFmpeg::AudioFilter> ();
+            gMicrophoneAudioFilters.emplace (pipeIdStr, audioFilter);
+        }
+    }
+
+    std::vector<FFmpeg::Frame> filteredFrames = audioFilter->filter (frame);
+    for (const FFmpeg::Frame &filteredFrame : filteredFrames)
+    {
+        publish (pipeIdStr, filteredFrame);
+    }
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_webrtc_HybridMicrophone_stopNativeMic (JNIEnv *, jobject)
+Java_com_webrtc_HybridMicrophone_resetAudioFilter (JNIEnv *env, jobject,
+                                                   jstring pipeId)
 {
-    gNativeMicrophone.stop ();
+    if (pipeId == nullptr)
+    {
+        return;
+    }
+
+    const char *pipeIdChars = env->GetStringUTFChars (pipeId, nullptr);
+    if (pipeIdChars == nullptr)
+    {
+        return;
+    }
+    std::string pipeIdStr (pipeIdChars);
+    env->ReleaseStringUTFChars (pipeId, pipeIdChars);
+    if (pipeIdStr.empty ())
+    {
+        return;
+    }
+
+    std::lock_guard lock (gMicrophoneAudioFiltersMutex);
+    gMicrophoneAudioFilters.erase (pipeIdStr);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webrtc_Camera_publishVideo (

@@ -1,5 +1,6 @@
 #pragma once
 #include "AudioFifo.hpp"
+#include "AudioFilter.hpp"
 #include "Decoder.hpp"
 #include "Encoder.hpp"
 #include "Frame.hpp"

@@ -48,7 +48,7 @@ cd 3rdparty && ./download.sh
 
 2. **C++ Core** (`cpp/`): Shared cross-platform logic. `Hybrid*.cpp` files implement WebRTC (via libdatachannel), media processing (via FFmpeg), and the frame pipeline. This layer handles RTCPeerConnection, MediaStream, MediaDevices, MediaRecorder, and RTP transceiver management.
 
-3. **Platform Native** (`ios/`, `android/`): Swift and Kotlin implementations for hardware-specific features — camera capture, microphone (Oboe audio engine), permissions, and video rendering views.
+3. **Platform Native** (`ios/`, `android/`): Swift and Kotlin implementations for hardware-specific features — camera capture, microphone capture (AudioRecord on Android), permissions, and video rendering views.
 
 ### Nitro Module Pattern
 
@@ -62,7 +62,6 @@ cd 3rdparty && ./download.sh
 - **libdatachannel**: WebRTC data channels and peer connections
 - **FFmpeg** (libavformat, libavcodec, libswscale, libswresample, libavutil): Video/audio encoding/decoding/muxing
 - **Opus**: Audio codec
-- **Oboe**: Low-latency audio engine (both iOS and Android)
 
 ### Key C++ Components
 
@@ -74,6 +73,7 @@ cd 3rdparty && ./download.sh
 
 - **TypeScript**: Single quotes, 2-space indent, trailing commas (ES5), no semicolons (Prettier)
 - **C++**: GNU style via `.clang-format` — 4-space indent, Allman braces
+- **C++**: For readability, do not create standalone RAII classes solely for local resource cleanup; prefer `try` blocks for explicit cleanup, or use existing wrappers when they fit.
 - **Commits**: Conventional Commits (`feat:`, `fix:`, `perf:`, `refactor:`, `chore:`, `docs:`)
 
 ## Folder Structure
@@ -97,7 +97,7 @@ cd 3rdparty && ./download.sh
 │   └── FramePipeWrapper.mm # C++ interop
 ├── android/
 │   ├── src/main/java/com/webrtc/  # Kotlin implementations
-│   └── src/main/cpp/              # JNI adapter + Oboe microphone
+│   └── src/main/cpp/              # JNI adapter
 ├── nitrogen/generated/     # Auto-generated Nitro bridge code (do not edit)
 ├── 3rdparty/
 │   ├── repo/
