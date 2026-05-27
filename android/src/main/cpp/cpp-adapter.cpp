@@ -6,6 +6,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cstring>
+#include <fbjni/fbjni.h>
 #include <jni.h>
 #include <memory>
 #include <mutex>
@@ -27,7 +28,8 @@ namespace
 JNIEXPORT auto JNICALL JNI_OnLoad (JavaVM *vm, void *) -> jint
 {
     gJvm = vm;
-    return margelo::nitro::webrtc::initialize (vm);
+    return facebook::jni::initialize (
+        vm, [] () { margelo::nitro::webrtc::registerAllNatives (); });
 }
 
 extern "C" JNIEXPORT void JNICALL

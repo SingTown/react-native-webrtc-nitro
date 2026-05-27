@@ -29,32 +29,26 @@ jobs:
         with:
           fetch-depth: 0
       - name: Download 3rdparty artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8.0.1
         with:
           name: 3rdparty-output
           path: 3rdparty/output
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.23.0
+          run_install: false
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 22
-      - name: Setup Bun.js
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      - name: Cache bun dependencies
-        id: bun-cache
-        uses: actions/cache@v5
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
+          cache: 'pnpm'
 
-      - name: Install npm dependencies (bun)
-        run: bun install
+      - name: Install npm dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Build lib
-        run: bun run build
+        run: pnpm run build
 
       - name: Release
         env:
@@ -65,4 +59,4 @@ jobs:
           GIT_AUTHOR_EMAIL: '${{ github.actor }}@users.noreply.github.com'
           GIT_COMMITTER_NAME: ${{ github.actor }}
           GIT_COMMITTER_EMAIL: '${{ github.actor }}@users.noreply.github.com'
-        run: bun release
+        run: pnpm release

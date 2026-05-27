@@ -14,7 +14,7 @@ on:
       - 'nitrogen/generated/android/**'
       - 'cpp/**'
       - 'android/**'
-      - '**/bun.lock'
+      - '**/pnpm-lock.yaml'
       - '**/react-native.config.js'
       - '**/nitro.json'
   pull_request:
@@ -25,7 +25,7 @@ on:
       - '**/nitrogen/generated/android/**'
       - 'cpp/**'
       - 'android/**'
-      - '**/bun.lock'
+      - '**/pnpm-lock.yaml'
       - '**/react-native.config.js'
       - '**/nitro.json'
   workflow_dispatch:
@@ -44,16 +44,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: oven-sh/setup-bun@v2
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.23.0
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'pnpm'
 
       - name: Download 3rdparty artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8.0.1
         with:
           name: 3rdparty-output
           path: 3rdparty/output
 
-      - name: Install dependencies (bun)
-        run: bun install
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Setup JDK 17
         uses: actions/setup-java@v5
