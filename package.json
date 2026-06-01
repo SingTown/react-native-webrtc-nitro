@@ -59,11 +59,11 @@
     "@types/react": "19.2.15",
     "clang-format-node": "^3.0.4",
     "conventional-changelog-conventionalcommits": "^9.3.1",
-    "nitrogen": "0.35.7",
+    "nitrogen": "0.35.9",
     "react": "19.2.6",
     "react-native": "0.83.1",
     "react-native-builder-bob": "^0.41.0",
-    "react-native-nitro-modules": "0.35.7",
+    "react-native-nitro-modules": "0.35.9",
     "semantic-release": "^25.0.3",
     "typescript": "^6.0.3"
   },
