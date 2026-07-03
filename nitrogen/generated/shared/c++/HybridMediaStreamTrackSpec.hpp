@@ -15,9 +15,13 @@
 
 // Forward declaration of `MediaStreamTrackState` to properly resolve imports.
 namespace margelo::nitro::webrtc { enum class MediaStreamTrackState; }
+// Forward declaration of `FacingMode` to properly resolve imports.
+namespace margelo::nitro::webrtc { enum class FacingMode; }
 
 #include <string>
 #include "MediaStreamTrackState.hpp"
+#include <NitroModules/Promise.hpp>
+#include "FacingMode.hpp"
 
 namespace margelo::nitro::webrtc {
 
@@ -57,6 +61,7 @@ namespace margelo::nitro::webrtc {
     public:
       // Methods
       virtual void stop() = 0;
+      virtual std::shared_ptr<Promise<void>> switchCamera(FacingMode facingMode) = 0;
 
     protected:
       // Hybrid Setup

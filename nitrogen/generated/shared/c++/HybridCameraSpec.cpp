@@ -15,6 +15,7 @@ namespace margelo::nitro::webrtc {
     // load custom methods/properties
     registerHybrids(this, [](Prototype& prototype) {
       prototype.registerHybridMethod("open", &HybridCameraSpec::open);
+      prototype.registerHybridMethod("switchCamera", &HybridCameraSpec::switchCamera);
     });
   }
 
