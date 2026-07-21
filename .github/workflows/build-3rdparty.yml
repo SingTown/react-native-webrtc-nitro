@@ -3,8 +3,7 @@ on:
 
 jobs:
   common-steps:
-    # macos-latest no longer ships Xcode 16.4; macos-15 still does
-    runs-on: macos-15
+    runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -36,7 +35,7 @@ jobs:
         if: steps.cache-3rdparty-output.outputs.cache-hit != 'true'
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: 16.4
+          xcode-version: '^26.0'
 
       - name: Install dependencies
         if: steps.cache-3rdparty-output.outputs.cache-hit != 'true'
