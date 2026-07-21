@@ -1,16 +1,20 @@
 #include "FFmpeg.hpp"
 #include "FramePipe.hpp"
 #include "WebrtcOnLoad.hpp"
+#include <android/log.h>
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
 #include <chrono>
+#include <condition_variable>
 #include <cstdint>
 #include <cstring>
+#include <deque>
 #include <fbjni/fbjni.h>
 #include <jni.h>
 #include <memory>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -23,6 +27,156 @@ namespace
     std::mutex gMicrophoneAudioFiltersMutex;
     std::unordered_map<std::string, std::shared_ptr<FFmpeg::AudioFilter>>
         gMicrophoneAudioFilters;
+
+    // Elastic buffer for speaker output: the decode thread only enqueues
+    // and returns immediately, while a dedicated thread feeds AudioTrack
+    // with blocking writes (paced by hardware back-pressure). The queue
+    // absorbs network jitter without dropping samples or blocking decode;
+    // when it exceeds the cap, the oldest chunks are discarded so that
+    // end-to-end latency stays bounded. On start and whenever the queue
+    // drains, writing is held until the pre-buffer level is reached —
+    // otherwise the steady-state level is ~0 and any jitter larger than
+    // the hardware buffer causes an underrun (heard as stutter).
+    constexpr size_t kSpeakerBytesPerSecond = 48000 * 2 * 2;
+    constexpr size_t kSpeakerMaxQueuedBytes
+        = kSpeakerBytesPerSecond * 400 / 1000;
+    constexpr size_t kSpeakerPreBufferBytes
+        = kSpeakerBytesPerSecond * 200 / 1000;
+
+    class AudioTrackWriter
+    {
+      public:
+        // trackGlobal must be a NewGlobalRef reference; ownership moves
+        // to this object and the writer thread releases it before exit.
+        explicit AudioTrackWriter (jobject trackGlobal)
+            : trackGlobal (trackGlobal), thread ([this] { run (); })
+        {
+        }
+
+        ~AudioTrackWriter () { stop (); }
+
+        void enqueue (std::vector<uint8_t> &&chunk)
+        {
+            if (chunk.empty ())
+            {
+                return;
+            }
+            {
+                std::lock_guard<std::mutex> lock (mutex);
+                if (!running)
+                {
+                    return;
+                }
+                queuedBytes += chunk.size ();
+                queue.push_back (std::move (chunk));
+                while (queuedBytes > kSpeakerMaxQueuedBytes
+                       && queue.size () > 1)
+                {
+                    queuedBytes -= queue.front ().size ();
+                    queue.pop_front ();
+                }
+                if (buffering && queuedBytes >= kSpeakerPreBufferBytes)
+                {
+                    buffering = false;
+                }
+            }
+            cv.notify_one ();
+        }
+
+        void stop ()
+        {
+            {
+                std::lock_guard<std::mutex> lock (mutex);
+                running = false;
+            }
+            cv.notify_all ();
+            if (thread.joinable ())
+            {
+                thread.join ();
+            }
+        }
+
+      private:
+        void run ()
+        {
+            JNIEnv *env = nullptr;
+            gJvm->AttachCurrentThread (&env, nullptr);
+
+            jclass audioTrackCls = env->GetObjectClass (trackGlobal);
+            jmethodID writeMethod
+                = env->GetMethodID (audioTrackCls, "write", "([BIII)I");
+            jfieldID writeBlockingField
+                = env->GetStaticFieldID (audioTrackCls, "WRITE_BLOCKING", "I");
+            jint WRITE_BLOCKING
+                = env->GetStaticIntField (audioTrackCls, writeBlockingField);
+
+            while (true)
+            {
+                std::vector<uint8_t> chunk;
+                {
+                    std::unique_lock<std::mutex> lock (mutex);
+                    cv.wait (lock,
+                             [this]
+                             {
+                                 return !running
+                                        || (!buffering && !queue.empty ());
+                             });
+                    if (!running)
+                    {
+                        break;
+                    }
+                    chunk = std::move (queue.front ());
+                    queue.pop_front ();
+                    queuedBytes -= chunk.size ();
+                    if (queue.empty ())
+                    {
+                        // Cushion exhausted, rebuild it; the hardware still
+                        // holds up to 80ms to play out.
+                        buffering = true;
+                        __android_log_print (
+                            ANDROID_LOG_INFO, "WebrtcSpeaker",
+                            "queue drained, rebuffering to %zu bytes",
+                            kSpeakerPreBufferBytes);
+                    }
+                }
+
+                auto length = static_cast<jsize> (chunk.size ());
+                jbyteArray byteArray = env->NewByteArray (length);
+                env->SetByteArrayRegion (
+                    byteArray, 0, length,
+                    reinterpret_cast<const jbyte *> (chunk.data ()));
+                jint written
+                    = env->CallIntMethod (trackGlobal, writeMethod, byteArray,
+                                          0, length, WRITE_BLOCKING);
+                env->DeleteLocalRef (byteArray);
+                if (env->ExceptionCheck ())
+                {
+                    env->ExceptionClear ();
+                    break;
+                }
+                if (written < 0)
+                {
+                    std::this_thread::sleep_for (
+                        std::chrono::milliseconds (20));
+                }
+            }
+
+            env->DeleteLocalRef (audioTrackCls);
+            env->DeleteGlobalRef (trackGlobal);
+            gJvm->DetachCurrentThread ();
+        }
+
+        jobject trackGlobal;
+        std::mutex mutex;
+        std::condition_variable cv;
+        std::deque<std::vector<uint8_t>> queue;
+        size_t queuedBytes = 0;
+        bool running = true;
+        bool buffering = true;
+        // Must be declared last: all other members have to be constructed
+        // before the thread starts
+        std::thread thread;
+    };
 }
 
 JNIEXPORT auto JNICALL JNI_OnLoad (JavaVM *vm, void *) -> jint
@@ -46,38 +200,19 @@ Java_com_webrtc_HybridWebrtcView_subscribeAudio (JNIEnv *env, jobject,
 {
     auto resampler = std::make_shared<FFmpeg::Resampler> ();
     jobject trackGlobal = env->NewGlobalRef (track);
+    auto writer = std::make_shared<AudioTrackWriter> (trackGlobal);
 
-    FrameCallback callback
-        = [trackGlobal, resampler] (const std::string &, int,
-                                    const FFmpeg::Frame &raw)
+    FrameCallback callback = [writer, resampler] (const std::string &, int,
+                                                  const FFmpeg::Frame &raw)
     {
-        JNIEnv *env;
-        gJvm->AttachCurrentThread (&env, nullptr);
-
         FFmpeg::Frame frame
             = resampler->resample (raw, AV_SAMPLE_FMT_S16, 48000, 2);
-        auto *sample = reinterpret_cast<const jbyte *> (frame->data[0]);
-        int length = frame->nb_samples * 2 * 2;
-        jbyteArray byteArray = env->NewByteArray (length);
-        env->SetByteArrayRegion (byteArray, 0, length, sample);
-
-        jclass audioTrackCls = env->GetObjectClass (trackGlobal);
-        jmethodID writeMethod
-            = env->GetMethodID (audioTrackCls, "write", "([BIII)I");
-        jfieldID writeNonBlockField
-            = env->GetStaticFieldID (audioTrackCls, "WRITE_NON_BLOCKING", "I");
-        jint WRITE_NON_BLOCKING
-            = env->GetStaticIntField (audioTrackCls, writeNonBlockField);
-        env->CallIntMethod (trackGlobal, writeMethod, byteArray, 0, length,
-                            WRITE_NON_BLOCKING);
+        auto *sample = reinterpret_cast<const uint8_t *> (frame->data[0]);
+        size_t length = static_cast<size_t> (frame->nb_samples) * 2 * 2;
+        writer->enqueue (std::vector<uint8_t> (sample, sample + length));
     };
 
-    CleanupCallback cleanup = [trackGlobal] (int)
-    {
-        JNIEnv *env;
-        gJvm->AttachCurrentThread (&env, nullptr);
-        env->DeleteGlobalRef (trackGlobal);
-    };
+    CleanupCallback cleanup = [writer] (int) { writer->stop (); };
 
     std::string pipeIdStr (env->GetStringUTFChars (pipeId, nullptr));
     return subscribe ({ pipeIdStr }, callback, cleanup);

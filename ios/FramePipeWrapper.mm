@@ -2,6 +2,108 @@
 #include "FramePipe.hpp"
 #include <string>
 
+// Water-level control for the speaker queue: scheduleBuffer's internal
+// queue is unbounded, so network jitter makes the backlog (i.e. the
+// end-to-end latency) grow monotonically. We keep our own pending queue
+// and account for the total buffered duration, discarding the oldest
+// chunks once over the cap; only a small amount stays scheduled on the
+// player, and each completion callback tops it up. All state is read
+// and written on the provided serial queue only.
+static const double kSpeakerMaxBufferedSeconds = 0.4;
+static const double kSpeakerTargetScheduledSeconds = 0.2;
+
+@interface SpeakerPacer : NSObject
+- (instancetype)initWithPlayer:(AVAudioPlayerNode *)player
+                         queue:(dispatch_queue_t)queue;
+- (void)enqueue:(AVAudioPCMBuffer *)buffer;
+@end
+
+@implementation SpeakerPacer
+{
+    AVAudioPlayerNode *_player;
+    dispatch_queue_t _queue;
+    NSMutableArray<AVAudioPCMBuffer *> *_pending;
+    double _pendingSeconds;
+    double _scheduledSeconds;
+}
+
+- (instancetype)initWithPlayer:(AVAudioPlayerNode *)player
+                         queue:(dispatch_queue_t)queue
+{
+    self = [super init];
+    if (self)
+    {
+        _player = player;
+        _queue = queue;
+        _pending = [NSMutableArray new];
+        _pendingSeconds = 0;
+        _scheduledSeconds = 0;
+    }
+    return self;
+}
+
+- (void)enqueue:(AVAudioPCMBuffer *)buffer
+{
+    dispatch_async (_queue, ^{
+      [self enqueueOnQueue:buffer];
+    });
+}
+
+- (void)enqueueOnQueue:(AVAudioPCMBuffer *)buffer
+{
+    [_pending addObject:buffer];
+    _pendingSeconds += [self durationOf:buffer];
+    while (_scheduledSeconds + _pendingSeconds > kSpeakerMaxBufferedSeconds
+           && _pending.count > 1)
+    {
+        _pendingSeconds -= [self durationOf:_pending.firstObject];
+        [_pending removeObjectAtIndex:0];
+    }
+    [self pumpOnQueue];
+}
+
+- (void)pumpOnQueue
+{
+    while (_scheduledSeconds < kSpeakerTargetScheduledSeconds
+           && _pending.count > 0)
+    {
+        AVAudioPCMBuffer *buffer = _pending.firstObject;
+        [_pending removeObjectAtIndex:0];
+        double duration = [self durationOf:buffer];
+        _pendingSeconds -= duration;
+        _scheduledSeconds += duration;
+        __weak SpeakerPacer *weakSelf = self;
+        [_player scheduleBuffer:buffer
+                            atTime:nil
+                           options:0
+            completionCallbackType:AVAudioPlayerNodeCompletionDataPlayedBack
+                 completionHandler:^(
+                     AVAudioPlayerNodeCompletionCallbackType type) {
+                   SpeakerPacer *strongSelf = weakSelf;
+                   if (!strongSelf)
+                   {
+                       return;
+                   }
+                   dispatch_async (strongSelf->_queue, ^{
+                     strongSelf->_scheduledSeconds -= duration;
+                     [strongSelf pumpOnQueue];
+                   });
+                 }];
+    }
+}
+
+- (double)durationOf:(AVAudioPCMBuffer *)buffer
+{
+    double sampleRate = buffer.format.sampleRate;
+    if (sampleRate <= 0)
+    {
+        return 0;
+    }
+    return (double)buffer.frameLength / sampleRate;
+}
+
+@end
+
 @implementation FramePipeWrapper
 
 + (void)cameraPublishVideo:(CMSampleBufferRef)sampleBuffer
@@ -263,8 +365,10 @@
                        queue:(dispatch_queue_t)queue
 {
     auto resampler = std::make_shared<FFmpeg::Resampler> ();
+    SpeakerPacer *pacer = [[SpeakerPacer alloc] initWithPlayer:audioPlayer
+                                                         queue:queue];
     FrameCallback callback
-        = [audioPlayer, resampler, queue] (
+        = [audioPlayer, resampler, pacer] (
               std::string pipeId, int subscriptionId, const FFmpeg::Frame &raw)
     {
         AVAudioFormat *format = [audioPlayer outputFormatForBus:0];
@@ -304,9 +408,7 @@
         }
         buffer.frameLength = frameCount;
 
-        dispatch_async (queue, ^{
-          [audioPlayer scheduleBuffer:buffer completionHandler:nil];
-        });
+        [pacer enqueue:buffer];
     };
 
     return subscribe ({ std::string ([pipeId UTF8String]) }, callback);
