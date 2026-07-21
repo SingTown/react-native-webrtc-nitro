@@ -3,7 +3,8 @@ on:
 
 jobs:
   common-steps:
-    runs-on: macos-latest
+    # macos-latest no longer ships Xcode 16.4; macos-15 still does
+    runs-on: macos-15
     steps:
       - name: Checkout
         uses: actions/checkout@v6
