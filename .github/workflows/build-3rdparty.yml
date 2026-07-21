@@ -6,7 +6,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Cache 3rdparty output
         id: cache-3rdparty-output
