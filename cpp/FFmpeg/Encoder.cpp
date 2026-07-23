@@ -94,7 +94,16 @@ void Encoder::_init (const Frame &frame)
     int ret = avcodec_open2 (ctx, encoder, nullptr);
     if (ret < 0)
     {
-        _fallback (frame);
+        try
+        {
+            _fallback (frame);
+        }
+        catch (...)
+        {
+            avcodec_free_context (&ctx);
+            ctx = nullptr;
+            throw;
+        }
     }
 }
 
