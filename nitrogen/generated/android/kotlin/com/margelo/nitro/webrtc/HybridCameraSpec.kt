@@ -32,6 +32,10 @@ abstract class HybridCameraSpec: HybridObject() {
   @DoNotStrip
   @Keep
   abstract fun open(pipeId: String): Promise<Unit>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun switchCamera(facingMode: FacingMode): Promise<Unit>
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {

@@ -5,6 +5,7 @@
 #include "HybridMicrophoneSpec.hpp"
 #include "MockCamera.hpp"
 #include "MockMicrophone.hpp"
+#include <NitroModules/Promise.hpp>
 #include <thread>
 
 namespace margelo::nitro::webrtc
@@ -89,5 +90,8 @@ namespace margelo::nitro::webrtc
                 camera->dispose ();
             }
         };
+
+        auto switchCamera (FacingMode facingMode)
+            -> std::shared_ptr<Promise<void>> override;
     };
 } // namespace margelo::nitro::webrtc

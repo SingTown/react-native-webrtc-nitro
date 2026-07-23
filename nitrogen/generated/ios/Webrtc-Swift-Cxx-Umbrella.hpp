@@ -8,6 +8,8 @@
 #pragma once
 
 // Forward declarations of C++ defined types
+// Forward declaration of `FacingMode` to properly resolve imports.
+namespace margelo::nitro::webrtc { enum class FacingMode; }
 // Forward declaration of `HybridCameraSpec` to properly resolve imports.
 namespace margelo::nitro::webrtc { class HybridCameraSpec; }
 // Forward declaration of `HybridMicrophoneSpec` to properly resolve imports.
@@ -24,6 +26,7 @@ namespace margelo::nitro::webrtc { enum class PermissionName; }
 namespace margelo::nitro::webrtc { enum class PermissionState; }
 
 // Include C++ defined types
+#include "FacingMode.hpp"
 #include "HybridCameraSpec.hpp"
 #include "HybridMicrophoneSpec.hpp"
 #include "HybridPermissionsSpec.hpp"

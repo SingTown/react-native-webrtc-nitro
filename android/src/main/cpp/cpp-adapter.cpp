@@ -179,6 +179,127 @@ namespace
     };
 }
 
+struct VideoTransform
+{
+    static auto normalizeRotation (int rotation) -> int
+    {
+        int normalized = rotation % 360;
+        if (normalized < 0)
+        {
+            normalized += 360;
+        }
+        switch (normalized)
+        {
+            case 0:
+            case 90:
+            case 180:
+            case 270:
+                return normalized;
+            default:
+                return 0;
+        }
+    }
+
+    static void copySample (uint8_t *dst, const uint8_t *src,
+                            int bytesPerSample)
+    {
+        if (bytesPerSample == 1)
+        {
+            *dst = *src;
+        }
+        else
+        {
+            dst[0] = src[0];
+            dst[1] = src[1];
+        }
+    }
+
+    static void rotateMirrorPlane (const uint8_t *src, int srcStride,
+                                   uint8_t *dst, int dstStride, int srcW,
+                                   int srcH, int rotation, bool mirror,
+                                   int bytesPerSample)
+    {
+        int dstW = (rotation == 90 || rotation == 270) ? srcH : srcW;
+        int dstH = (rotation == 90 || rotation == 270) ? srcW : srcH;
+
+        if (rotation == 0 && !mirror)
+        {
+            const int rowBytes = srcW * bytesPerSample;
+            for (int y = 0; y < srcH; ++y)
+            {
+                memcpy (dst + y * dstStride, src + y * srcStride, rowBytes);
+            }
+            return;
+        }
+
+        for (int y = 0; y < dstH; ++y)
+        {
+            uint8_t *dstRow = dst + y * dstStride;
+            for (int x = 0; x < dstW; ++x)
+            {
+                int xTransformed = mirror ? (dstW - 1 - x) : x;
+                int srcX = 0;
+                int srcY = 0;
+                switch (rotation)
+                {
+                    case 0:
+                        srcX = xTransformed;
+                        srcY = y;
+                        break;
+                    case 90:
+                        srcX = y;
+                        srcY = srcH - 1 - xTransformed;
+                        break;
+                    case 180:
+                        srcX = srcW - 1 - xTransformed;
+                        srcY = srcH - 1 - y;
+                        break;
+                    case 270:
+                    default:
+                        srcX = srcW - 1 - y;
+                        srcY = xTransformed;
+                        break;
+                }
+                const uint8_t *srcSample
+                    = src + srcY * srcStride + srcX * bytesPerSample;
+                copySample (dstRow + x * bytesPerSample, srcSample,
+                            bytesPerSample);
+            }
+        }
+    }
+
+    static void rotateMirrorNV12 (const FFmpeg::Frame &src, FFmpeg::Frame &dst,
+                                  int rotation, bool mirror)
+    {
+        rotateMirrorPlane (src->data[0], src->linesize[0], dst->data[0],
+                           dst->linesize[0], src->width, src->height, rotation,
+                           mirror, 1);
+        rotateMirrorPlane (src->data[1], src->linesize[1], dst->data[1],
+                           dst->linesize[1], src->width / 2, src->height / 2,
+                           rotation, mirror, 2);
+    }
+
+    static auto orientNV12 (const FFmpeg::Frame &src, int rotation,
+                            bool mirror) -> FFmpeg::Frame
+    {
+        int normalizedRotation = normalizeRotation (rotation);
+        if (normalizedRotation == 0 && !mirror)
+        {
+            return src;
+        }
+
+        int outWidth = (normalizedRotation == 90 || normalizedRotation == 270)
+                           ? src->height
+                           : src->width;
+        int outHeight = (normalizedRotation == 90 || normalizedRotation == 270)
+                            ? src->width
+                            : src->height;
+        FFmpeg::Frame dst (AV_PIX_FMT_NV12, outWidth, outHeight, src->pts);
+        rotateMirrorNV12 (src, dst, normalizedRotation, mirror);
+        return dst;
+    }
+};
+
 JNIEXPORT auto JNICALL JNI_OnLoad (JavaVM *vm, void *) -> jint
 {
     gJvm = vm;
@@ -346,8 +467,9 @@ Java_com_webrtc_HybridMicrophone_resetAudioFilter (JNIEnv *env, jobject,
     gMicrophoneAudioFilters.erase (pipeIdStr);
 }
 
-extern "C" JNIEXPORT void JNICALL Java_com_webrtc_Camera_publishVideo (
-    JNIEnv *env, jobject, jobjectArray pipeIds, jobject image)
+extern "C" JNIEXPORT auto JNICALL Java_com_webrtc_Camera_publishVideo (
+    JNIEnv *env, jobject, jobjectArray pipeIds, jobject image, jint rotation,
+    jboolean mirror) -> void
 {
     jclass imageClass = env->GetObjectClass (image);
     jmethodID getWidthMethod
@@ -418,13 +540,16 @@ extern "C" JNIEXPORT void JNICALL Java_com_webrtc_Camera_publishVideo (
     env->DeleteLocalRef (imageClass);
     env->DeleteLocalRef (planeClass);
 
+    FFmpeg::Frame outputFrame
+        = VideoTransform::orientNV12 (frame, rotation, mirror == JNI_TRUE);
+
     jsize pipeIdsLength = env->GetArrayLength (pipeIds);
     for (jsize i = 0; i < pipeIdsLength; ++i)
     {
         auto pipeId = (jstring)env->GetObjectArrayElement (pipeIds, i);
         const char *cstr = env->GetStringUTFChars (pipeId, nullptr);
         std::string pipeIdStr (cstr);
-        publish (pipeIdStr, frame);
+        publish (pipeIdStr, outputFrame);
         env->ReleaseStringUTFChars (pipeId, cstr);
         env->DeleteLocalRef (pipeId);
     }

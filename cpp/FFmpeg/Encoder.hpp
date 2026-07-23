@@ -29,13 +29,13 @@ namespace FFmpeg
 
         static constexpr int H264_SAMPLE_RATE = 90000;
         static constexpr int H264_GOP_SIZE = 60;
-        static constexpr int H264_BIT_RATE = 1000000;
-        static constexpr int H264_FPS = 30;
+        static constexpr int H264_BIT_RATE = 500000;
+        static constexpr int H264_FPS = 20;
 
         static constexpr int H265_SAMPLE_RATE = 90000;
         static constexpr int H265_GOP_SIZE = 60;
-        static constexpr int H265_BIT_RATE = 1000000;
-        static constexpr int H265_FPS = 30;
+        static constexpr int H265_BIT_RATE = 500000;
+        static constexpr int H265_FPS = 20;
 
         void _init (const Frame &frame);
         void _fallback (const Frame &frame);

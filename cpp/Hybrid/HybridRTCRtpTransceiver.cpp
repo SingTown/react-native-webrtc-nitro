@@ -1,5 +1,48 @@
 #include "HybridRTCRtpTransceiver.hpp"
 #include "rtcpnackrequester.hpp"
+#include <condition_variable>
+#include <cstdio>
+#include <mutex>
+#include <thread>
+
+namespace
+{
+    struct RtpVideoSenderState
+    {
+        std::mutex mutex;
+        std::condition_variable cv;
+        std::optional<FFmpeg::Frame> latestFrame;
+        bool stopped = false;
+        std::thread worker;
+    };
+
+    void sendEncodedFramePackets (const std::shared_ptr<rtc::Track> &track,
+                                  FFmpeg::Encoder &encoder,
+                                  const FFmpeg::Frame &frame)
+    {
+        FFmpeg::Frame frameToSend = frame;
+        if ((encoder.encoder->id == AV_CODEC_ID_H264
+             || encoder.encoder->id == AV_CODEC_ID_H265)
+            && frame->width < frame->height)
+        {
+            static thread_local FFmpeg::Scaler scaler;
+            frameToSend = scaler.scale (frame, (AVPixelFormat)frame->format,
+                                        frame->height, frame->width);
+        }
+
+        encoder.send (frameToSend);
+        auto packets = encoder.receive ();
+        for (auto packet : packets)
+        {
+            if (!track->isOpen ())
+            {
+                return;
+            }
+            track->sendFrame ((const rtc::byte *)packet->data, packet->size,
+                              packet->pts);
+        }
+    }
+} // namespace
 
 using namespace margelo::nitro::webrtc;
 
@@ -18,13 +61,13 @@ auto HybridRTCRtpTransceiver::offerMedia (const std::string &mid)
     else if (kind == "video")
     {
         rtc::Description::Video video (mid, direction);
+        video.addH264Codec (96, "profile-level-id=42e01f;"
+                                "packetization-mode=1;"
+                                "level-asymmetry-allowed=1");
         video.addH265Codec (104, "level-id=93;"
                                  "profile-id=1;"
                                  "tier-flag=0;"
                                  "tx-mode=SRST");
-        video.addH264Codec (96, "profile-level-id=42e01f;"
-                                "packetization-mode=1;"
-                                "level-asymmetry-allowed=1");
         media = video;
     }
     else
@@ -71,13 +114,19 @@ auto HybridRTCRtpTransceiver::answerMedia (
         throw std::invalid_argument ("Unsupported media type: " + kind);
     }
 
-    for (auto pt : remoteMedia.payloadTypes ())
+    for (const std::string &format : { "H264", "H265", "opus" })
     {
-        auto rtpMap = remoteMedia.rtpMap (pt);
-        if (rtpMap->format == "H264" || rtpMap->format == "H265"
-            || rtpMap->format == "opus")
+        for (auto pt : remoteMedia.payloadTypes ())
         {
-            media->addRtpMap (*rtpMap);
+            auto rtpMap = remoteMedia.rtpMap (pt);
+            if (rtpMap->format == format)
+            {
+                media->addRtpMap (*rtpMap);
+                break;
+            }
+        }
+        if (!media->payloadTypes ().empty ())
+        {
             break;
         }
     }
@@ -192,20 +241,89 @@ void HybridRTCRtpTransceiver::senderOnOpen ()
     std::string pipeId
         = hybridRtcRtpSender->mediaStreamTrack->get_dstPipeId ();
     auto encoder = std::make_shared<FFmpeg::Encoder> (avCodecId);
+    auto rtcTrack = track;
+
+    if (avCodecId == AV_CODEC_ID_H264 || avCodecId == AV_CODEC_ID_H265)
+    {
+        auto state = std::make_shared<RtpVideoSenderState> ();
+        state->worker = std::thread (
+            [encoder, rtcTrack, state] ()
+            {
+                while (true)
+                {
+                    std::optional<FFmpeg::Frame> frame;
+                    {
+                        std::unique_lock lock (state->mutex);
+                        state->cv.wait (
+                            lock,
+                            [state]
+                            {
+                                return state->stopped
+                                       || state->latestFrame.has_value ();
+                            });
+                        if (state->stopped && !state->latestFrame.has_value ())
+                        {
+                            return;
+                        }
+                        frame = std::move (state->latestFrame);
+                        state->latestFrame.reset ();
+                    }
+
+                    try
+                    {
+                        sendEncodedFramePackets (rtcTrack, *encoder,
+                                                 frame.value ());
+                    }
+                    catch (const std::exception &error)
+                    {
+                        std::fprintf (stderr,
+                                      "[Webrtc] RTP video send failed: %s\n",
+                                      error.what ());
+                    }
+                }
+            });
+
+        int subscriptionId = subscribe (
+            { pipeId },
+            [state] (const std::string &, int, const FFmpeg::Frame &frame)
+            {
+                {
+                    std::lock_guard lock (state->mutex);
+                    state->latestFrame = frame;
+                }
+                state->cv.notify_one ();
+            },
+            [state] (int)
+            {
+                {
+                    std::lock_guard lock (state->mutex);
+                    state->stopped = true;
+                    state->latestFrame.reset ();
+                }
+                state->cv.notify_one ();
+                if (state->worker.joinable ())
+                {
+                    state->worker.join ();
+                }
+            });
+        track->onClosed ([subscriptionId] ()
+                         { unsubscribe (subscriptionId); });
+        return;
+    }
+
     int subscriptionId = subscribe (
         { pipeId },
-        [encoder, this] (const std::string &, int, const FFmpeg::Frame &frame)
+        [encoder, rtcTrack] (const std::string &, int,
+                             const FFmpeg::Frame &frame)
         {
-            encoder->send (frame);
-            auto packets = encoder->receive ();
-            for (auto packet : packets)
+            try
             {
-                if (!track->isOpen ())
-                {
-                    return;
-                }
-                track->sendFrame ((const rtc::byte *)packet->data,
-                                  packet->size, packet->pts);
+                sendEncodedFramePackets (rtcTrack, *encoder, frame);
+            }
+            catch (const std::exception &error)
+            {
+                std::fprintf (stderr, "[Webrtc] RTP send failed: %s\n",
+                              error.what ());
             }
         });
     track->onClosed ([subscriptionId] () { unsubscribe (subscriptionId); });

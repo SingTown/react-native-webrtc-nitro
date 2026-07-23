@@ -19,6 +19,9 @@ private class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDeleg
     private var activePipeIds: Set<String> = []
     private let pipeIdsLock = NSLock()
     
+    var facingMode: FacingMode = .user
+    private let cameraLock = NSLock()
+    
     private override init() {
         super.init()
         captureSession.sessionPreset = .high
@@ -35,10 +38,11 @@ private class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDeleg
     }
     
     func prepare() throws {
+        let position: AVCaptureDevice.Position = facingMode == .user ? .front : .back
         guard let videoDevice = AVCaptureDevice.default(
             .builtInWideAngleCamera,
             for: .video,
-            position: .back) else {
+            position: position) else {
             throw RuntimeError.error(withMessage: "Unable to access camera")
         }
         let deviceInput = try AVCaptureDeviceInput(device: videoDevice)
@@ -49,12 +53,55 @@ private class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDeleg
         }
     }
     
+    private func setFacingMode(_ mode: FacingMode) {
+        cameraLock.lock()
+        defer { cameraLock.unlock() }
+        
+        if facingMode == mode {
+            return
+        }
+        
+        facingMode = mode
+        
+        pipeIdsLock.lock()
+        let hasActivePipes = !activePipeIds.isEmpty
+        pipeIdsLock.unlock()
+        
+        if hasActivePipes {
+            captureSession.stopRunning()
+            captureSession.inputs.forEach { input in
+                captureSession.removeInput(input)
+            }
+            
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    try self.prepare()
+                    self.captureSession.startRunning()
+                } catch {
+                    NSLog("Failed to switch camera: \(error)")
+                }
+            }
+        }
+    }
+
+    func switchCamera(facingMode: FacingMode) throws {
+        setFacingMode(facingMode)
+    }
+    
     // AVCaptureVideoDataOutputSampleBufferDelegate
     func captureOutput(
         _ output: AVCaptureOutput,
         didOutput sampleBuffer: CMSampleBuffer,
         from connection: AVCaptureConnection
     ) {
+        if connection.isVideoOrientationSupported {
+            connection.videoOrientation = .portrait
+        }
+        
+        if connection.isVideoMirroringSupported {
+            connection.isVideoMirrored = facingMode == .user
+        }
+        
         pipeIdsLock.lock()
         let pipeIds = Array(activePipeIds)
         pipeIdsLock.unlock()
@@ -99,6 +146,12 @@ public class HybridCamera: HybridCameraSpec {
             try self.cameraManager.prepare()
             self.pipeId = pipeId
             self.cameraManager.addActivePipeId(pipeId)
+        }
+    }
+
+    public func switchCamera(facingMode: FacingMode) throws -> Promise<Void> {
+        return Promise.async {
+            try self.cameraManager.switchCamera(facingMode: facingMode)
         }
     }
 
