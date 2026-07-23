@@ -41,6 +41,10 @@ object Camera {
 
     private val cameraStateCallback = object : CameraDevice.StateCallback() {
         override fun onOpened(camera: CameraDevice) {
+            if (pipeIds.isEmpty()) {
+                camera.close()
+                return
+            }
             cameraDevice = camera
             val captureRequestBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
             captureRequestBuilder.addTarget(imageReader.surface)
@@ -63,6 +67,10 @@ object Camera {
 
             val sessionStateCallback = object : CameraCaptureSession.StateCallback() {
                 override fun onConfigured(session: CameraCaptureSession) {
+                    if (pipeIds.isEmpty()) {
+                        session.close()
+                        return
+                    }
                     captureSession = session
                     session.setRepeatingRequest(
                         captureRequest,
@@ -179,13 +187,13 @@ object Camera {
     }
 
     private fun stopCamera() {
+        imageReader.setOnImageAvailableListener(null, null)
         captureSession?.stopRepeating()
         captureSession?.close()
         captureSession = null
         cameraDevice?.close()
         cameraDevice = null
         backgroundThread.quitSafely()
-        backgroundThread.join()
     }
 
     private fun getFrameRotationDegrees(context: Context): Int {
